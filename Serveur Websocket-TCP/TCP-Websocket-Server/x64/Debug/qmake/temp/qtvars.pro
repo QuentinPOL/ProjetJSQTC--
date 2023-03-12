@@ -1,2 +1,2 @@
 CONFIG += no_fixpath
-QT += core gui widgets network websockets
+QT += core gui widgets network websockets sql

@@ -28,6 +28,8 @@ public:
     QLabel *label_status;
     QLabel *label_message;
     QPushButton *pushMessageButton;
+    QLabel *label_database;
+    QLabel *label_user;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
@@ -36,22 +38,28 @@ public:
     {
         if (TCPWebsocketServerClass->objectName().isEmpty())
             TCPWebsocketServerClass->setObjectName(QString::fromUtf8("TCPWebsocketServerClass"));
-        TCPWebsocketServerClass->resize(567, 400);
+        TCPWebsocketServerClass->resize(729, 490);
         centralWidget = new QWidget(TCPWebsocketServerClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         label_status = new QLabel(centralWidget);
         label_status->setObjectName(QString::fromUtf8("label_status"));
-        label_status->setGeometry(QRect(110, 10, 411, 131));
+        label_status->setGeometry(QRect(110, 10, 591, 51));
         label_message = new QLabel(centralWidget);
         label_message->setObjectName(QString::fromUtf8("label_message"));
-        label_message->setGeometry(QRect(90, 210, 431, 131));
+        label_message->setGeometry(QRect(10, 210, 691, 71));
         pushMessageButton = new QPushButton(centralWidget);
         pushMessageButton->setObjectName(QString::fromUtf8("pushMessageButton"));
         pushMessageButton->setGeometry(QRect(200, 170, 141, 23));
+        label_database = new QLabel(centralWidget);
+        label_database->setObjectName(QString::fromUtf8("label_database"));
+        label_database->setGeometry(QRect(10, 340, 691, 31));
+        label_user = new QLabel(centralWidget);
+        label_user->setObjectName(QString::fromUtf8("label_user"));
+        label_user->setGeometry(QRect(10, 390, 691, 31));
         TCPWebsocketServerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(TCPWebsocketServerClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 567, 22));
+        menuBar->setGeometry(QRect(0, 0, 729, 22));
         TCPWebsocketServerClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(TCPWebsocketServerClass);
         mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
@@ -72,6 +80,8 @@ public:
         label_status->setText(QString());
         label_message->setText(QString());
         pushMessageButton->setText(QCoreApplication::translate("TCPWebsocketServerClass", "Envoyer message Client", nullptr));
+        label_database->setText(QString());
+        label_user->setText(QString());
     } // retranslateUi
 
 };

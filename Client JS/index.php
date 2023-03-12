@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 	<head>
 		<title>Connexion</title>
 		<meta charset="UTF-8">
@@ -32,20 +32,20 @@
 		<div class="limiter">
 			<div class="container-login100" style="background-image: url('images/bg-01.jpg');">
 				<div class="wrap-login100 p-l-55 p-r-55 p-t-65 p-b-54">
-					<form class="login100-form validate-form">
+					<form class="login100-form validate-form" id="formConnect">
 						<span class="login100-form-title p-b-49">
 							Connexion Client
 						</span>
 
 						<div class="wrap-input100 validate-input m-b-23" data-validate = "Ce champ ne doit pas être vide">
 							<span class="label-input100">Nom d'utilisateur</span>
-							<input class="input100" type="text" name="username" placeholder="Entrez votre nom d'utilisateur">
+							<input class="input100" type="text" id="username" maxlength="30" placeholder="Entrez votre nom d'utilisateur">
 							<span class="focus-input100" data-symbol="&#xf206;"></span>
 						</div>
 
 						<div class="wrap-input100 validate-input" data-validate="Ce champ ne doit pas être vide">
 							<span class="label-input100">Mot de passe</span>
-							<input class="input100" type="password" name="pass" placeholder="Entrez votre mot de passe">
+							<input class="input100" type="password" id="passwd" maxlength="20" placeholder="Entrez votre mot de passe">
 							<span class="focus-input100" data-symbol="&#xf190;"></span>
 						</div>
 
@@ -58,7 +58,13 @@
 							</div>
 						</div>
 
-						<div class="txt1 text-center p-t-54 p-b-20">
+						<div class="flex-col-c p-t-20">
+							<!-- Informations -->
+							<p id="status">Status : Aucun</p>
+							<p id="reponse">Réponse : Aucune</p>
+						</div>
+
+						<div class="txt1 text-center p-t-30 p-b-20">
 							<span style="color: black;">
 								Bienvenue sur le formulaire de connexion !
 							</span>
@@ -73,7 +79,6 @@
 				</div>
 			</div>
 		</div>
-
 		
 	<!--===============================================================================================-->
 		<script src="vendor/jquery/jquery-3.2.1.min.js"></script>
@@ -90,6 +95,9 @@
 	<!--===============================================================================================-->
 		<script src="vendor/countdowntime/countdowntime.js"></script>
 	<!--===============================================================================================-->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+	<!--===============================================================================================-->
 		<script src="js/main.js"></script>
+		<script src="js/client.js"></script>
 	</body>
 </html>

@@ -16,6 +16,24 @@ TCPWebsocketServer::TCPWebsocketServer(QWidget *parent)
     // [TCP]
     webSocketServer->listen(QHostAddress::AnyIPv4, 81);
     TCPserver->listen(QHostAddress::AnyIPv4, 1234);
+
+    // [BDD]
+    db = QSqlDatabase::addDatabase("QMYSQL");
+
+    db.setHostName("localhost");
+    db.setUserName("root");
+    db.setPassword("");
+    db.setDatabaseName("chatdatabase");
+
+    if (db.open())
+    {
+        ui.label_database->setText("Connexion reussie  a " + QString::fromStdString(db.hostName().toStdString()));
+    }
+    else
+    {
+        ui.label_status->setText("Probleme de connexion a " + QString::fromStdString(db.hostName().toStdString()));
+    }
+
 }
 
 // [Desctructeur]
@@ -105,20 +123,104 @@ void TCPWebsocketServer::onWebClientReadyRead(const QString& message)
 // [Envoie message client]
 void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket* objWeb, QString messageReceived) 
 {
+    bool isConnected  = false;
+
     if (obj != nullptr ) // Si c'est un objet Socket
     {
         if (obj->state() == QTcpSocket::ConnectedState)
         {
             obj->write("\n" + messageReceived.toUtf8());
-            objWeb->sendTextMessage(messageReceived + "\n");
         }
     }
     else if (objWeb !=  nullptr) // Si c'est un objet Websocket
     {
         if (objWeb->state() == QAbstractSocket::ConnectedState)
-        {
-            objWeb->sendTextMessage(messageReceived + "\n");
-            obj->write("\n" + messageReceived.toUtf8());
+        {    
+            QJsonObject reponse; //  On créer la réponse en objet JSON
+
+            if (messageReceived == "verification")
+            {
+                if (isConnected) // Si il est connecter
+                {
+                    reponse.insert("IsConnecting", QJsonValue::fromVariant("cest-bon@#2zdz"));
+                }
+                else if (!isConnected) // Si il est pas connecter
+                {
+                    reponse.insert("IsConnecting", QJsonValue::fromVariant("cest-Pasbon@#2zdz"));
+                }
+            }
+            else
+            {
+                QJsonObject jsonMessage = QJsonDocument::fromJson(messageReceived.toUtf8()).object(); // On décode en objet JSON
+                
+                QString usernameEnter = jsonMessage["username"].toString();
+                QString passwordEnter = jsonMessage["password"].toString();
+                QString isExist = "ilExistePas";
+
+                // On va faire quelque chose selon l'entete de cette réponse
+                if (jsonMessage["type"].toString() == "inscription") // Si  c'est  une inscription
+                {
+                    // Requête SQL :
+                    QSqlQuery selectUsername("SELECT username FROM account");
+
+                    while (selectUsername.next()) // Tant que y'a des tuples
+                    {
+                        //ui.label_user->setText("Username = " + usernameSelect);
+                        if (selectUsername.value(0).toString() == usernameEnter) // Si on trouve que l'username existe déjà
+                        {
+                            isExist = "ilExiste"; // On met la QString à vrai
+                            break;
+                        }
+                    }
+
+                    if (isExist == "ilExistePas") // Si on trouve pas l'username
+                    {
+                        QSqlQuery insert("INSERT INTO account (idAccount, username, password) VALUES ('', ?, ?)");
+                        insert.addBindValue(usernameEnter);
+                        insert.addBindValue(passwordEnter);
+
+                        if (insert.exec())
+                        {
+                            isExist = "ilEstInscrit";
+                            //isConnected = true;
+                            ui.label_message->setText("Inscription = " + messageReceived); // Réception Message du client Web
+                        }
+                    }
+
+                    reponse.insert("Inscription", QJsonValue::fromVariant(isExist));
+                }
+                else  if (jsonMessage["type"].toString() == "connexion") // Si  c'est  une connexion
+                {
+                    // Requête SQL :
+                    QSqlQuery selectUserPass("SELECT username, password FROM account WHERE username = '"+usernameEnter+"'");
+
+                    if (selectUserPass.next()) // Si il y a > 0 tuples
+                    {
+                        QString userSelect = selectUserPass.value("username").toString();
+                        QString passwordSelect = selectUserPass.value("password").toString();
+
+                        if (usernameEnter == userSelect && passwordEnter == passwordSelect) // Si il à rentrer les bons identifiants
+                        {
+                            isExist = "ilEstConnecter";
+                            //isConnected = true;
+                            ui.label_message->setText("Connexion = " + messageReceived); // Réception Message du client Web
+                        }
+                        else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
+                        {
+                            isExist = "mdpPasBon";
+                        }
+                    }
+
+                    reponse.insert("Connexion", QJsonValue::fromVariant(isExist));
+                    //ui.label_message->setText("Connexion = " + messageReceived); // Réception Message du client Web
+                }
+            }
+
+            QJsonDocument messageDoc(reponse);  // On transforme en document json
+            QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+            objWeb->sendTextMessage(QString::fromUtf8(messageBytes)); // Ensuite on envoie une chaine
+
+            //objWeb->sendTextMessage(messageReceived + '\n');
         }
     }
 }

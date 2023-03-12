@@ -25,8 +25,6 @@
           <button type="button" id="sendMessage">Envoyer</button>
         </form>
 
-
-
         <!-- Réception Messages -->
         <div>
             <ul id="receiveMessages"></ul>

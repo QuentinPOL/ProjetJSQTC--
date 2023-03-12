@@ -6,6 +6,10 @@
 #include <qtcpsocket.h>
 #include <QWebSocketServer>
 #include <QWebSocket>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 
 class TCPWebsocketServer : public QMainWindow
 {
@@ -19,6 +23,7 @@ private:
     Ui::TCPWebsocketServerClass ui;
     QTcpServer* TCPserver;
     QWebSocketServer* webSocketServer;
+    QSqlDatabase db;
 
     //std::vector<QTcpSocket*> clientsTCP; // Listes des clients application
     //std::vector<QWebSocket*> clientsWeb; // Listes des clients web
