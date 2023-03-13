@@ -62,6 +62,7 @@
 							<!-- Informations -->
 							<p id="status">Status : Aucun</p>
 							<p id="reponse">Réponse : Aucune</p>
+							<p id="innner">cookie : Aucune</p>
 							<p id="noValidate"></p>
 						</div>
 

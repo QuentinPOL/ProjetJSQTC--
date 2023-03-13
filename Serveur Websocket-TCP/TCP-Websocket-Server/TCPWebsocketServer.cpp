@@ -20,9 +20,9 @@ TCPWebsocketServer::TCPWebsocketServer(QWidget *parent)
     // [BDD]
     db = QSqlDatabase::addDatabase("QMYSQL");
 
-    db.setHostName("localhost");
+    db.setHostName("192.168.64.174");
     db.setUserName("root");
-    db.setPassword("");
+    db.setPassword("root");
     db.setDatabaseName("chatdatabase");
 
     if (db.open())
@@ -175,12 +175,13 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 
                     if (isExist == "ilExistePas") // Si on trouve pas l'username
                     {
-                        QSqlQuery insert("INSERT INTO account (idAccount, username, password) VALUES ('', ?, ?)");
+                        QSqlQuery insert("INSERT INTO account (username, password) VALUES (?, ?)");
                         insert.addBindValue(usernameEnter);
                         insert.addBindValue(passwordEnter);
 
                         if (insert.exec())
                         {
+                            ui.label_message->setText("Inscription = fdp");
                             isExist = "ilEstInscrit";
                             //isConnected = true;
                             ui.label_message->setText("Inscription = " + messageReceived); // Réception Message du client Web

@@ -62,6 +62,7 @@
 							<!-- Informations -->
 							<p id="status">Status : Aucun</p>
 							<p id="reponse">Réponse : Aucune</p>
+							<p id="innner">cookie : Aucune</p>
 						</div>
 
 						<div class="txt1 text-center p-t-30 p-b-20">

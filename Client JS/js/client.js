@@ -9,29 +9,9 @@ const statusSocket = document.getElementById('status');
 // Réponse JSON
 var reponseJSON = null;
 
-// Fonction pour vérifier l'état de la connexion
-function checkConnection() 
-{
-  return new Promise(function(resolve) {
-    if (reponseJSON != null) 
-    {
-      resolve(reponseJSON);
-    } 
-    else 
-    {
-      const intervalId = setInterval(() => {
-        if (reponseJSON != null) 
-        {
-          clearInterval(intervalId);
-          resolve(reponseJSON);
-        }
-      }, 100);
-    }
-  });
-}
-
 // Fonction pour crypter un mot de passe en SHA256
-function sha256(password) {
+function sha256(password) 
+{
   return CryptoJS.SHA256(password).toString();
 }
 
@@ -63,12 +43,25 @@ function requestUser(type)
 }
 
 // Fonction pour définir un cookie avec un nom, une valeur et une durée d'expiration
-function setCookie(name, value, expirationDays) {
-  var date = new Date();
-  date.setTime(date.getTime() + (expirationDays * 60 * 1000)); // Convertir les jours en millisecondes
+function setCookie(name, value) 
+{
+  document.cookie = name + "=" + value + ";";
+}
 
-  var expires = "expires=" + date.toUTCString();
-  document.cookie = name + "=" + value + ";" + expires + ";path=/";
+// Fonction pour vérifier si l'utilisateur est connecter ou pas
+function isLoggedIn() 
+{
+  var cookies = document.cookie.split(";"); // Récupérer tous les cookies
+
+  for (var i = 0; i < cookies.length; i++) 
+  {
+    var cookie = cookies[i].trim(); // Supprimer les espaces de chaque cookie
+
+    if (cookie.startsWith("loggedIn=")) { // Vérifier si le cookie commence par "loggedIn="
+      return cookie.substring("loggedIn=".length, cookie.length) === "true"; // Vérifier si la valeur du cookie est "true"
+    }
+  }
+  return false; // Si le cookie n'est pas défini, retourner false
 }
 
 // Tentative Connexion
@@ -80,7 +73,7 @@ if (socket.readyState == 0)
 // Connexion Ouverte
 socket.addEventListener('open', () => {
   statusSocket.innerHTML = "Status : Connecter !";
-  socket.send("verification"); // Pour savoir si l'utilisateur est connecter
+  //socket.send("verification"); // Pour savoir si l'utilisateur est connecter
 });
 
 // Connexion Fermée
@@ -88,25 +81,19 @@ socket.addEventListener('close', () => {
   statusSocket.innerHTML = "Status : Fermer (Le serveur à était fermer) !";
 });
 
-// Réception message (le premier)
-socket.addEventListener('message', function (event) {
-  reponseJSON = JSON.parse(event.data);
-},{once: true} );
-
 // Défini la date d'expiration du cookie à la fermeture de la fenêtre
 window.addEventListener("beforeunload", () => {
-  document.cookie = "loggedIn=true;expires=0;path=/"; // Définir la date d'expiration à 0 pour supprimer le cookie
+  document.cookie = "loggedIn=false"; // Définir la date d'expiration à 0 pour supprimer le cookie
 });
 
 // Selon ou on se situe
 if (path == "/" || page ==  "index.php" || page == "inscription.php")
 {
-  checkConnection().then(function(FreponseJSON) {
-    if (FreponseJSON.IsConnecting == "cest-bon@#2zdz") // Si il est connecter
+    if (isLoggedIn()) // Si il est connecter
     {
       document.location.href = "client.php";
     }
-    else if (FreponseJSON.IsConnecting == "cest-Pasbon@#2zdz") // Si il est pas connecter
+    else // Si il est pas connecter
     {
       let formSignUp = null;
       let formConnect =  null;
@@ -149,7 +136,11 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
           }
           else if (reponseJSON.Inscription == "ilEstInscrit")
           {
-            setCookie("loggedIn", "true", 10);
+            reponse.innerHTML = reponseJSON.Inscription;
+
+            var innner = document.getElementById('innner');
+            innner.innerHTML = document.cookie;
+
           }
         }
         else if (type == 2) // Si c'est une connexion
@@ -160,12 +151,10 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
       }
     }
-  });
 }
 else if (path == "/client.php")
 {
-  checkConnection().then(function(FreponseJSON) {
-    if (FreponseJSON.IsConnecting == "cest-bon@#2zdz") // Si il est connecter
+    if (isLoggedIn()) // Si il est connecter
     { 
       const errorSocket = document.getElementById('errorSocket');
       const sendSocket = document.getElementById('sendMessage');
@@ -195,11 +184,10 @@ else if (path == "/client.php")
         errorSocket.innerHTML = "Erreur WebSocket : " + event;
       });
     }
-    else if (FreponseJSON.IsConnecting == "cest-Pasbon@#2zdz") // Si il est pas connecter
+    else // Si il est pas connecter
     {
       document.location.href = "index.php";
     }
-  });
 }
 
 
