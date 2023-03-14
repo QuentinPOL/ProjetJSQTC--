@@ -10,6 +10,8 @@
 #include <QJsonDocument>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <qmap.h>
+#include "ClientState.h"
 
 class TCPWebsocketServer : public QMainWindow
 {
@@ -24,6 +26,9 @@ private:
     QTcpServer* TCPserver;
     QWebSocketServer* webSocketServer;
     QSqlDatabase db;
+
+
+	QMap<QWebSocket*, ClientState*> clients;
 
     //std::vector<QTcpSocket*> clientsTCP; // Listes des clients application
     //std::vector<QWebSocket*> clientsWeb; // Listes des clients web

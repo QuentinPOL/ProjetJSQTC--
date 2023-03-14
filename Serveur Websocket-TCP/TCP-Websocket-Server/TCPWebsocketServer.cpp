@@ -64,6 +64,8 @@ void TCPWebsocketServer::onServerNewConnection()
     // [WebSocket]
     QObject::connect(clientWeb, &QWebSocket::textMessageReceived, this, &TCPWebsocketServer::onWebClientReadyRead);
     QObject::connect(clientWeb, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+
+	clients[clientWeb] = new ClientState();
 }
 
 // [Deconnexion client]
@@ -134,6 +136,16 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
     }
     else if (objWeb !=  nullptr) // Si c'est un objet Websocket
     {
+		ClientState * clientState = clients[objWeb];
+		if (!clientState->authenticated)
+		{
+			// Ne peut que inscription ou connexion
+		}
+		else
+		{
+			// Peut envoyer des messages ...
+		}
+
         if (objWeb->state() == QAbstractSocket::ConnectedState)
         {    
             QJsonObject reponse; //  On créer la réponse en objet JSON
@@ -221,6 +233,13 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
             QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
             objWeb->sendTextMessage(QString::fromUtf8(messageBytes)); // Ensuite on envoie une chaine
 
+			/*
+			// Parcourir l'ensemble des clients présent dans le tableau associatif :
+			for (auto it = clients.keyBegin(); it != clients.keyEnd(); it++)
+			{
+				(*it)->sendTextMessage("Test");
+			}
+			*/
             //objWeb->sendTextMessage(messageReceived + '\n');
         }
     }

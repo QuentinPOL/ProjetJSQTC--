@@ -18,7 +18,7 @@ function sha256(password)
 function requestUser(type) 
 {
   let msg;
-  let password = document.getElementById("username").value;
+  let password = document.getElementById("passwd").value;
   let hashedPassword = sha256(password);
 
   if (type == 1)
@@ -43,9 +43,11 @@ function requestUser(type)
 }
 
 // Fonction pour définir un cookie avec un nom, une valeur et une durée d'expiration
-function setCookie(name, value) 
-{
-  document.cookie = name + "=" + value + ";";
+function setCookie(cvalue, exminutes) {
+  const d = new Date();
+  d.setTime(d.getTime() + (exminutes*60*1000));
+  let expires = "expires="+ d.toUTCString();
+  document.cookie = "loggedIn=" + cvalue + ";" + expires + ";path=/";
 }
 
 // Fonction pour vérifier si l'utilisateur est connecter ou pas
@@ -79,11 +81,6 @@ socket.addEventListener('open', () => {
 // Connexion Fermée
 socket.addEventListener('close', () => {
   statusSocket.innerHTML = "Status : Fermer (Le serveur à était fermer) !";
-});
-
-// Défini la date d'expiration du cookie à la fermeture de la fenêtre
-window.addEventListener("beforeunload", () => {
-  document.cookie = "loggedIn=false"; // Définir la date d'expiration à 0 pour supprimer le cookie
 });
 
 // Selon ou on se situe
@@ -137,10 +134,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
           else if (reponseJSON.Inscription == "ilEstInscrit")
           {
             reponse.innerHTML = reponseJSON.Inscription;
-
-            var innner = document.getElementById('innner');
-            innner.innerHTML = document.cookie;
-
+            setCookie("true", 10);
           }
         }
         else if (type == 2) // Si c'est une connexion
