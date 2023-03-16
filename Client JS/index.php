@@ -36,7 +36,6 @@ session_start();
 		<div class="limiter">
 			<div class="container-login100" style="background-image: url('images/bg-01.jpg');">
 				<div class="wrap-login100 p-l-55 p-r-55 p-t-65 p-b-54">
-					<form class="login100-form validate-form" id="formConnect">
 						<span class="login100-form-title p-b-49">
 							Connexion Client
 						</span>
@@ -56,7 +55,7 @@ session_start();
 						<div class="container-login100-form-btn p-t-8">
 							<div class="wrap-login100-form-btn">
 								<div class="login100-form-bgbtn"></div>
-								<button class="login100-form-btn">
+								<button class="login100-form-btn" id="btnConnexion">
 									Se connecter
 								</button>
 							</div>
@@ -66,7 +65,7 @@ session_start();
 							<!-- Informations -->
 							<p id="status">Status : Aucun</p>
 							<p id="reponse">Réponse : Aucune</p>
-							<p id="innner">cookie : Aucune</p>
+							<p id="noValidate"></p>
 						</div>
 
 						<div class="txt1 text-center p-t-30 p-b-20">
@@ -80,7 +79,6 @@ session_start();
 								Pas inscrit ?
 							</a>
 						</div>
-					</form>
 				</div>
 			</div>
 		</div>
@@ -100,7 +98,7 @@ session_start();
 	<!--===============================================================================================-->
 		<script src="vendor/countdowntime/countdowntime.js"></script>
 	<!--===============================================================================================-->
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
 	<!--===============================================================================================-->
 		<script src="js/main.js"></script>
 		<script src="js/client.js"></script>

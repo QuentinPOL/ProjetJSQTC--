@@ -148,23 +148,11 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 
         if (objWeb->state() == QAbstractSocket::ConnectedState)
         {    
-            QJsonObject reponse; //  On créer la réponse en objet JSON
+			QJsonObject jsonMessage = QJsonDocument::fromJson(messageReceived.toUtf8()).object(); // On décode en objet JSON      
+			QJsonObject reponse; //  On créer la réponse en objet JSON
 
-            if (messageReceived == "verification")
+            if (jsonMessage["type"].toString() == "inscription")
             {
-                if (isConnected) // Si il est connecter
-                {
-                    reponse.insert("IsConnecting", QJsonValue::fromVariant("cest-bon@#2zdz"));
-                }
-                else if (!isConnected) // Si il est pas connecter
-                {
-                    reponse.insert("IsConnecting", QJsonValue::fromVariant("cest-Pasbon@#2zdz"));
-                }
-            }
-            else
-            {
-                QJsonObject jsonMessage = QJsonDocument::fromJson(messageReceived.toUtf8()).object(); // On décode en objet JSON
-                
                 QString usernameEnter = jsonMessage["username"].toString();
                 QString passwordEnter = jsonMessage["password"].toString();
                 QString isExist = "ilExistePas";
@@ -193,10 +181,9 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 
                         if (insert.exec())
                         {
-                            ui.label_message->setText("Inscription = fdp");
                             isExist = "ilEstInscrit";
                             //isConnected = true;
-                            ui.label_message->setText("Inscription = " + messageReceived); // Réception Message du client Web
+                            //ui.label_message->setText("Inscription = " + messageReceived); // Réception Message du client Web
                         }
                     }
 
@@ -216,7 +203,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
                         {
                             isExist = "ilEstConnecter";
                             //isConnected = true;
-                            ui.label_message->setText("Connexion = " + messageReceived); // Réception Message du client Web
+                            //ui.label_message->setText("Connexion = " + messageReceived); // Réception Message du client Web
                         }
                         else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
                         {
@@ -225,8 +212,20 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
                     }
 
                     reponse.insert("Connexion", QJsonValue::fromVariant(isExist));
-                    //ui.label_message->setText("Connexion = " + messageReceived); // Réception Message du client Web
                 }
+				else if (jsonMessage["type"].toString() == "message") // Si c'est un message
+				{
+					// On va vérifier qu'il est authentifier
+
+					// On va insérer en base
+					QSqlQuery insertMessage("INSERT INTO account (username, password) VALUES(?, ?)");
+					insertMessage.addBindValue(jsonMessage["type"].toString());
+					insertMessage.addBindValue(jsonMessage["type"].toString());
+
+
+					// Et on va préparer la réponse en json
+
+				}
             }
 
             QJsonDocument messageDoc(reponse);  // On transforme en document json

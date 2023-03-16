@@ -32,7 +32,6 @@
 		<div class="limiter">
 			<div class="container-login100" style="background-image: url('images/bg-01.jpg');">
 				<div class="wrap-login100 p-l-55 p-r-55 p-t-65 p-b-54">
-					<form class="login100-form validate-form" id="formSignUp">
 						<span class="login100-form-title p-b-49">
 							Inscription
 						</span>
@@ -52,7 +51,7 @@
 						<div class="container-login100-form-btn p-t-8">
 							<div class="wrap-login100-form-btn">
 								<div class="login100-form-bgbtn"></div>
-								<button class="login100-form-btn">
+								<button class="login100-form-btn" id="btnInscription">
 									S'inscrire
 								</button>
 							</div>
@@ -62,7 +61,6 @@
 							<!-- Informations -->
 							<p id="status">Status : Aucun</p>
 							<p id="reponse">Réponse : Aucune</p>
-							<p id="innner">cookie : Aucune</p>
 							<p id="noValidate"></p>
 						</div>
 
@@ -77,7 +75,6 @@
 								Déjà inscrit ?
 							</a>
 						</div>
-					</form>
 				</div>
 			</div>
 		</div>

@@ -18,23 +18,38 @@ function sha256(password)
 function requestUser(type) 
 {
   let msg;
-  let password = document.getElementById("passwd").value;
-  let hashedPassword = sha256(password);
 
-  if (type == 1)
-  { 
-    msg = {
-      type: "inscription",
-      username: document.getElementById("username").value,
-      password: hashedPassword,
-    };
+  if (type == 1 || type == 2)
+  {
+    let username = document.getElementById("username").value;
+    let password = document.getElementById("passwd").value;
+    let hashedPassword = sha256(password);
+
+    if (type == 1)
+    { 
+      msg = {
+        type: "inscription",
+        username: username,
+        password: hashedPassword,
+      };
+    }
+    else if (type == 2)
+    {
+      msg = {
+        type: "connexion",
+        username: username,
+        password: hashedPassword,
+      };
+    }
   }
-  else if (type == 2)
+  else if (type == 3)
   {
     msg = {
-      type: "connexion",
-      username: document.getElementById("username").value,
-      password: hashedPassword,
+      type: "message",
+      username: usernameMessage, // Username du gars (mettre le cookie)
+      content : contentMessage, // Content du message
+      date: dateMessage, // Date d'envoi du message
+      heure: heureMessage, // Heure d'envoie du message
     };
   }
 
@@ -45,7 +60,7 @@ function requestUser(type)
 // Fonction pour définir un cookie avec un nom, une valeur et une durée d'expiration
 function setCookie(cvalue, exminutes) {
   const d = new Date();
-  d.setTime(d.getTime() + (exminutes*60*1000));
+  d.setTime(d.getTime() + (exminutes*60*1000)); // Minutes
   let expires = "expires="+ d.toUTCString();
   document.cookie = "loggedIn=" + cvalue + ";" + expires + ";path=/";
 }
@@ -86,65 +101,71 @@ socket.addEventListener('close', () => {
 // Selon ou on se situe
 if (path == "/" || page ==  "index.php" || page == "inscription.php")
 {
-    if (isLoggedIn()) // Si il est connecter
+  if (isLoggedIn()) // Si il est connecter
     {
       document.location.href = "client.php";
     }
     else // Si il est pas connecter
     {
-      let formSignUp = null;
-      let formConnect =  null;
-      let reponse = document.getElementById('reponse');
-      let type;
+      let btnInscription = btnConnexion = type = null;
+      let noValidate = document.getElementById('noValidate');
 
-      if (path == "/" || page ==  "index.php")
+      if (path == "/" || page ==  "index.php") // Page de connexion
       {
-        formConnect = document.getElementById('formConnect');
-
-        formConnect.addEventListener('submit', () => {
+        btnConnexion = document.getElementById('btnConnexion');
+        btnConnexion.addEventListener('click', () => 
+        {
           type = 2;
           requestUser(type);
         });
       }
-      else if (page == "inscription.php")
+      if (page == "inscription.php") // Page d'inscription
       {
-        formSignUp = document.getElementById('formSignUp');
-
-        formSignUp.addEventListener('submit', () => {
+        btnInscription = document.getElementById('btnInscription');
+        btnInscription.addEventListener('click', () => 
+        {
           type = 1;
           requestUser(type);
         });
       }
 
-      socket.onmessage = function (evt) { 
-        console.log(JSON.parse(evt.data));
-        reponseJSON = JSON.parse(evt.data);
+    socket.onmessage = function (evt) // Lorsque le serveur répond
+    { 
+      reponseJSON = JSON.parse(evt.data); // On recupere en format json
 
-        if (type == 1) // Si c'est une inscription
+      if (type == 1) // Si c'est une inscription
+      {
+        if (reponseJSON.Inscription == "ilExiste") // Si il existe déjà
         {
-          reponse.innerHTML = "1 = " + JSON.stringify(reponseJSON);
-          
-          if (reponseJSON.Inscription == "ilExiste") // Si il existe déjà
-          {
-            let noValidate = document.getElementById('noValidate');
-
-            noValidate.style.color = "red";
-            noValidate.innerHTML = "Ce nom d'utilsateur existe déjà !";
-          }
-          else if (reponseJSON.Inscription == "ilEstInscrit")
-          {
-            reponse.innerHTML = reponseJSON.Inscription;
-            setCookie("true", 10);
-          }
+          noValidate.style.color = "red";
+          noValidate.innerHTML = "Ce nom d'utilisateur existe déjà !";
         }
-        else if (type == 2) // Si c'est une connexion
+        else if (reponseJSON.Inscription == "ilEstInscrit") // Si il est inscrit
         {
-          reponse.innerHTML = "2 = " + JSON.stringify(reponseJSON);
-
-          // On va décomposer la réponse JSON du serveur
+          setCookie("true", 10);
+          document.location.href = "client.php";
+        }
+      }
+      else if (type == 2) // Si c'est une connexion
+      {
+        if (reponseJSON.Connexion == "ilExistePas") // Si il existe pas
+        {
+          noValidate.style.color = "red";
+          noValidate.innerHTML = "Ce nom d'utilisateur existe pas !";
+        }
+        else if (reponseJSON.Connexion == "mdpPasBon") // Si mdp incorrect
+        {
+          noValidate.style.color = "red";
+          noValidate.innerHTML = "Mot de passe incorrect !";
+        }
+        else if (reponseJSON.Connexion == "ilEstConnecter") // Si il est connecter
+        {
+          setCookie("true", 10);
+          document.location.href = "client.php";
         }
       }
     }
+  }
 }
 else if (path == "/client.php")
 {
@@ -183,6 +204,3 @@ else if (path == "/client.php")
       document.location.href = "index.php";
     }
 }
-
-
-// St Malo ou rennes 
