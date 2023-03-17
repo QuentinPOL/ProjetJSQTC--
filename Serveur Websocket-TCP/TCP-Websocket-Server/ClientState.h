@@ -1,17 +1,15 @@
 #pragma once
-
 #include <qstring.h>
 
-struct ClientState
+class ClientState
 {
+public :
+	ClientState(QString username); // Constructeur
+	bool isAuthenticated(); // Méthode d'authentification
+	void setAuthenticated(bool newAuthenticated, QString newUsername); // Changer l'authentification
 
+private:
 	bool authenticated;
 	QString username;
-
-	ClientState()
-	{
-		authenticated = false;
-		username = "";
-	}
 };
 

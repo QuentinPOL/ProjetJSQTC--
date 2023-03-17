@@ -23,15 +23,11 @@ public:
 
 private:
     Ui::TCPWebsocketServerClass ui;
-    QTcpServer* TCPserver;
-    QWebSocketServer* webSocketServer;
-    QSqlDatabase db;
-
-
-	QMap<QWebSocket*, ClientState*> clients;
-
-    //std::vector<QTcpSocket*> clientsTCP; // Listes des clients application
-    //std::vector<QWebSocket*> clientsWeb; // Listes des clients web
+    QTcpServer* TCPserver; // TCP Server
+    QWebSocketServer* webSocketServer; // WebSocket Server
+    QSqlDatabase db; // Base de donnée
+	QMap<QTcpSocket*, ClientState*> cltsTCP; // Listes des clients TCP
+	QMap<QWebSocket*, ClientState*> cltsWeb; // Listes des clients Web
 
 public slots:
     void onServerNewConnection(); // Connexion client

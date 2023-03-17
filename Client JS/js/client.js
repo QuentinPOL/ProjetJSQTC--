@@ -15,7 +15,8 @@ function sha256(password)
   return CryptoJS.SHA256(password).toString();
 }
 
-function requestUser(type) 
+// Fonction pour envoyer au serveur
+function requestUser(type, path, page, contentMessage) 
 {
   let msg;
 
@@ -29,6 +30,7 @@ function requestUser(type)
     { 
       msg = {
         type: "inscription",
+        page: page,
         username: username,
         password: hashedPassword,
       };
@@ -37,6 +39,8 @@ function requestUser(type)
     {
       msg = {
         type: "connexion",
+        path: path,
+        page: page,
         username: username,
         password: hashedPassword,
       };
@@ -44,12 +48,18 @@ function requestUser(type)
   }
   else if (type == 3)
   {
+    // On récupere l'username avec le cookie
+    let usernameCookie = getUsernameFromCookie();
+    // On va récuperer la date et l'heure
+    let actualyDate = getDateHours();
+
     msg = {
       type: "message",
-      username: usernameMessage, // Username du gars (mettre le cookie)
-      content : contentMessage, // Content du message
-      date: dateMessage, // Date d'envoi du message
-      heure: heureMessage, // Heure d'envoie du message
+      path: path, //
+      username: usernameMessage,
+      content : contentMessage,
+      date: actualyDate.date,
+      heure: actualyDate.heure, 
     };
   }
 
@@ -58,11 +68,11 @@ function requestUser(type)
 }
 
 // Fonction pour définir un cookie avec un nom, une valeur et une durée d'expiration
-function setCookie(cvalue, exminutes) {
+function setCookie(cvalue, cusername, exminutes) {
   const d = new Date();
   d.setTime(d.getTime() + (exminutes*60*1000)); // Minutes
   let expires = "expires="+ d.toUTCString();
-  document.cookie = "loggedIn=" + cvalue + ";" + expires + ";path=/";
+  document.cookie = "loggedIn=" + cvalue + ";username=" + cusername + ";" + expires + ";path=/";
 }
 
 // Fonction pour vérifier si l'utilisateur est connecter ou pas
@@ -81,6 +91,49 @@ function isLoggedIn()
   return false; // Si le cookie n'est pas défini, retourner false
 }
 
+// Fonction qui récupere la date ainsi que l'heure
+function getDateHours()
+{
+  const date = new Date();
+
+  // Récupérer la date
+  const jour = date.getDate();
+  const mois = date.getMonth() + 1; // Les mois commencent à 0, donc ajouter 1
+  const annee = date.getFullYear();
+  const dateString = jour + '/' + mois + '/' + annee;
+
+  // Récupérer l'heure
+  const heures = date.getHours();
+  const minutes = date.getMinutes();
+  const secondes = date.getSeconds();
+  const heureString = heures + ':' + minutes + ':' + secondes;
+
+  // Retourner la date et l'heure sous forme d'un objet
+  return {
+    date: dateString,
+    heure: heureString
+  };
+}
+
+// Fonction qui récuper l'username dans le cookie
+function getUsernameFromCookie()
+{
+   // Vérifie si la valeur de l'attribut "loggedIn" est "true"
+   if (isLoggedIn()) 
+   {
+    const usernameStartIndex = cookie.indexOf("username=");
+    if (usernameStartIndex === -1) 
+    {
+      return false; // Le cookie ne contient pas l'attribut "username"
+    }
+  }
+
+  const usernameEndIndex = cookie.indexOf(";", usernameStartIndex);
+  const usernameValue = decodeURIComponent(cookie.substring(usernameStartIndex + 9, usernameEndIndex));
+
+  return usernameValue;
+}
+
 // Tentative Connexion
 if (socket.readyState == 0)
 {
@@ -90,7 +143,6 @@ if (socket.readyState == 0)
 // Connexion Ouverte
 socket.addEventListener('open', () => {
   statusSocket.innerHTML = "Status : Connecter !";
-  //socket.send("verification"); // Pour savoir si l'utilisateur est connecter
 });
 
 // Connexion Fermée
@@ -107,7 +159,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
     }
     else // Si il est pas connecter
     {
-      let btnInscription = btnConnexion = type = null;
+      let btnInscription = btnConnexion = null;
       let noValidate = document.getElementById('noValidate');
 
       if (path == "/" || page ==  "index.php") // Page de connexion
@@ -115,8 +167,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         btnConnexion = document.getElementById('btnConnexion');
         btnConnexion.addEventListener('click', () => 
         {
-          type = 2;
-          requestUser(type);
+          requestUser(2, path, page, null);
         });
       }
       if (page == "inscription.php") // Page d'inscription
@@ -124,15 +175,13 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         btnInscription = document.getElementById('btnInscription');
         btnInscription.addEventListener('click', () => 
         {
-          type = 1;
-          requestUser(type);
+          requestUser(1, null, page, null);
         });
       }
 
     socket.onmessage = function (evt) // Lorsque le serveur répond
     { 
       reponseJSON = JSON.parse(evt.data); // On recupere en format json
-
       if (type == 1) // Si c'est une inscription
       {
         if (reponseJSON.Inscription == "ilExiste") // Si il existe déjà
@@ -142,7 +191,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
         else if (reponseJSON.Inscription == "ilEstInscrit") // Si il est inscrit
         {
-          setCookie("true", 10);
+          setCookie("true", 10); // [Retourner l'username en json]
           document.location.href = "client.php";
         }
       }
@@ -160,7 +209,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
         else if (reponseJSON.Connexion == "ilEstConnecter") // Si il est connecter
         {
-          setCookie("true", 10);
+          setCookie("true", 10); // [Retourner l'username en json]
           document.location.href = "client.php";
         }
       }
@@ -177,11 +226,11 @@ else if (path == "/client.php")
 
       // Envoie des Messages
       sendSocket.addEventListener('click', () => {
-        const message = document.getElementById('saisiMessage').value;
-        
-        if (message.length != 0)
+        const message = document.getElementById('saisiMessage').value; // On recup le message
+
+        if (message.length != 0) // Si > 0 caractére
         {
-          socket.send(message);
+          requestUser(3, path, null, message); // on le construit puis l'envoie
         }
       });
 
