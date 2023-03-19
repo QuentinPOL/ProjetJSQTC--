@@ -26,13 +26,17 @@ class Ui_TCPIPQTClass
 {
 public:
     QWidget *centralWidget;
-    QLabel *label;
-    QLabel *label_2;
-    QLineEdit *IPEdit;
-    QLineEdit *PortEdit;
-    QPushButton *pushConnectButton;
+    QLabel *label_username;
+    QLabel *label_password;
+    QLineEdit *UsernameEdit;
+    QLineEdit *PasswordEdit;
+    QPushButton *pushSignUptButton;
     QPushButton *pushMessageButton;
     QLabel *label_status;
+    QPushButton *pushConnectButton;
+    QLineEdit *MessageEdit;
+    QLabel *label_error;
+    QLabel *label_message;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
@@ -41,34 +45,55 @@ public:
     {
         if (TCPIPQTClass->objectName().isEmpty())
             TCPIPQTClass->setObjectName(QString::fromUtf8("TCPIPQTClass"));
-        TCPIPQTClass->resize(555, 400);
+        TCPIPQTClass->setEnabled(true);
+        TCPIPQTClass->resize(768, 547);
+        TCPIPQTClass->setAutoFillBackground(false);
         centralWidget = new QWidget(TCPIPQTClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
-        label = new QLabel(centralWidget);
-        label->setObjectName(QString::fromUtf8("label"));
-        label->setGeometry(QRect(40, 40, 47, 13));
-        label_2 = new QLabel(centralWidget);
-        label_2->setObjectName(QString::fromUtf8("label_2"));
-        label_2->setGeometry(QRect(40, 70, 47, 13));
-        IPEdit = new QLineEdit(centralWidget);
-        IPEdit->setObjectName(QString::fromUtf8("IPEdit"));
-        IPEdit->setGeometry(QRect(70, 40, 113, 20));
-        PortEdit = new QLineEdit(centralWidget);
-        PortEdit->setObjectName(QString::fromUtf8("PortEdit"));
-        PortEdit->setGeometry(QRect(70, 70, 113, 20));
-        pushConnectButton = new QPushButton(centralWidget);
-        pushConnectButton->setObjectName(QString::fromUtf8("pushConnectButton"));
-        pushConnectButton->setGeometry(QRect(90, 130, 75, 23));
+        label_username = new QLabel(centralWidget);
+        label_username->setObjectName(QString::fromUtf8("label_username"));
+        label_username->setGeometry(QRect(220, 170, 71, 16));
+        label_password = new QLabel(centralWidget);
+        label_password->setObjectName(QString::fromUtf8("label_password"));
+        label_password->setGeometry(QRect(220, 200, 61, 16));
+        UsernameEdit = new QLineEdit(centralWidget);
+        UsernameEdit->setObjectName(QString::fromUtf8("UsernameEdit"));
+        UsernameEdit->setGeometry(QRect(280, 170, 221, 20));
+        PasswordEdit = new QLineEdit(centralWidget);
+        PasswordEdit->setObjectName(QString::fromUtf8("PasswordEdit"));
+        PasswordEdit->setGeometry(QRect(280, 200, 221, 21));
+        pushSignUptButton = new QPushButton(centralWidget);
+        pushSignUptButton->setObjectName(QString::fromUtf8("pushSignUptButton"));
+        pushSignUptButton->setGeometry(QRect(280, 260, 91, 23));
         pushMessageButton = new QPushButton(centralWidget);
         pushMessageButton->setObjectName(QString::fromUtf8("pushMessageButton"));
-        pushMessageButton->setGeometry(QRect(320, 150, 141, 23));
+        pushMessageButton->setEnabled(false);
+        pushMessageButton->setGeometry(QRect(0, 450, 121, 41));
+        pushMessageButton->setAutoFillBackground(false);
+        pushMessageButton->setStyleSheet(QString::fromUtf8(""));
+        pushMessageButton->setAutoDefault(false);
+        pushMessageButton->setFlat(false);
         label_status = new QLabel(centralWidget);
         label_status->setObjectName(QString::fromUtf8("label_status"));
-        label_status->setGeometry(QRect(200, 45, 371, 31));
+        label_status->setGeometry(QRect(20, 10, 171, 21));
+        pushConnectButton = new QPushButton(centralWidget);
+        pushConnectButton->setObjectName(QString::fromUtf8("pushConnectButton"));
+        pushConnectButton->setGeometry(QRect(410, 260, 91, 23));
+        MessageEdit = new QLineEdit(centralWidget);
+        MessageEdit->setObjectName(QString::fromUtf8("MessageEdit"));
+        MessageEdit->setEnabled(false);
+        MessageEdit->setGeometry(QRect(120, 450, 641, 41));
+        MessageEdit->setStyleSheet(QString::fromUtf8(""));
+        label_error = new QLabel(centralWidget);
+        label_error->setObjectName(QString::fromUtf8("label_error"));
+        label_error->setGeometry(QRect(290, 230, 201, 21));
+        label_message = new QLabel(centralWidget);
+        label_message->setObjectName(QString::fromUtf8("label_message"));
+        label_message->setGeometry(QRect(30, 340, 701, 41));
         TCPIPQTClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(TCPIPQTClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 555, 22));
+        menuBar->setGeometry(QRect(0, 0, 768, 22));
         TCPIPQTClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(TCPIPQTClass);
         mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
@@ -80,18 +105,25 @@ public:
         retranslateUi(TCPIPQTClass);
         QObject::connect(pushConnectButton, SIGNAL(clicked()), TCPIPQTClass, SLOT(onConnectButtonClicked()));
         QObject::connect(pushMessageButton, SIGNAL(clicked()), TCPIPQTClass, SLOT(onSendMessageButtonClicked()));
+        QObject::connect(pushSignUptButton, SIGNAL(clicked()), TCPIPQTClass, SLOT(onSignUpButtonClicked()));
 
         QMetaObject::connectSlotsByName(TCPIPQTClass);
     } // setupUi
 
     void retranslateUi(QMainWindow *TCPIPQTClass)
     {
-        TCPIPQTClass->setWindowTitle(QCoreApplication::translate("TCPIPQTClass", "TCPIPQT", nullptr));
-        label->setText(QCoreApplication::translate("TCPIPQTClass", "IP :", nullptr));
-        label_2->setText(QCoreApplication::translate("TCPIPQTClass", "Port :", nullptr));
-        pushConnectButton->setText(QCoreApplication::translate("TCPIPQTClass", "Connexion", nullptr));
-        pushMessageButton->setText(QCoreApplication::translate("TCPIPQTClass", "Envoyer un message", nullptr));
-        label_status->setText(QString());
+        TCPIPQTClass->setWindowTitle(QCoreApplication::translate("TCPIPQTClass", "Chat Client", nullptr));
+        label_username->setText(QCoreApplication::translate("TCPIPQTClass", "Username :", nullptr));
+        label_password->setText(QCoreApplication::translate("TCPIPQTClass", "Password :", nullptr));
+        UsernameEdit->setPlaceholderText(QCoreApplication::translate("TCPIPQTClass", "Entrez un nom d'utilisateur", nullptr));
+        PasswordEdit->setPlaceholderText(QCoreApplication::translate("TCPIPQTClass", "Entrez un mot de passe", nullptr));
+        pushSignUptButton->setText(QCoreApplication::translate("TCPIPQTClass", "S'inscrire", nullptr));
+        pushMessageButton->setText(QCoreApplication::translate("TCPIPQTClass", "Envoyer", nullptr));
+        label_status->setText(QCoreApplication::translate("TCPIPQTClass", "Status : Aucun", nullptr));
+        pushConnectButton->setText(QCoreApplication::translate("TCPIPQTClass", "Se connecter", nullptr));
+        MessageEdit->setPlaceholderText(QCoreApplication::translate("TCPIPQTClass", "Entrez le texte souhaiter ....", nullptr));
+        label_error->setText(QString());
+        label_message->setText(QString());
     } // retranslateUi
 
 };

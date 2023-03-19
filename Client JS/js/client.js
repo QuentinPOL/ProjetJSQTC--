@@ -56,7 +56,7 @@ function requestUser(type, path, page, contentMessage)
     msg = {
       type: "message",
       path: path, //
-      username: usernameMessage,
+      username: usernameCookie,
       content : contentMessage,
       date: actualyDate.date,
       heure: actualyDate.heure, 
@@ -68,27 +68,43 @@ function requestUser(type, path, page, contentMessage)
 }
 
 // Fonction pour définir un cookie avec un nom, une valeur et une durée d'expiration
-function setCookie(cvalue, cusername, exminutes) {
+function setCookie(cvalue, cusername, exminutes) 
+{
   const d = new Date();
   d.setTime(d.getTime() + (exminutes*60*1000)); // Minutes
+
   let expires = "expires="+ d.toUTCString();
-  document.cookie = "loggedIn=" + cvalue + ";username=" + cusername + ";" + expires + ";path=/";
+
+  let cookieObject = {
+    loggedIn: cvalue,
+    usernameCookie: cusername
+  };
+
+  let jsonString = JSON.stringify(cookieObject);
+  document.cookie = `cookieObject=${jsonString}` + ";" + expires;
+
+  console.log("document.cookie :", document.cookie);
 }
 
 // Fonction pour vérifier si l'utilisateur est connecter ou pas
 function isLoggedIn() 
 {
-  var cookies = document.cookie.split(";"); // Récupérer tous les cookies
+  // Récupération du cookie et vérification de la valeur de loggedIn
+  const cookiesArray = document.cookie.split(';');
 
-  for (var i = 0; i < cookies.length; i++) 
+  for (let i = 0; i < cookiesArray.length; i++) 
   {
-    var cookie = cookies[i].trim(); // Supprimer les espaces de chaque cookie
+    const cookie = cookiesArray[i].trim();
+    if (cookie.startsWith('cookieObject=')) 
+    {
+      const value = cookie.substring('cookieObject='.length, cookie.length);
+      const parsedCookie = JSON.parse(value);
 
-    if (cookie.startsWith("loggedIn=")) { // Vérifier si le cookie commence par "loggedIn="
-      return cookie.substring("loggedIn=".length, cookie.length) === "true"; // Vérifier si la valeur du cookie est "true"
+      return parsedCookie.loggedIn === "true";
     }
   }
-  return false; // Si le cookie n'est pas défini, retourner false
+
+  return false;
 }
 
 // Fonction qui récupere la date ainsi que l'heure
@@ -118,20 +134,27 @@ function getDateHours()
 // Fonction qui récuper l'username dans le cookie
 function getUsernameFromCookie()
 {
-   // Vérifie si la valeur de l'attribut "loggedIn" est "true"
-   if (isLoggedIn()) 
-   {
-    const usernameStartIndex = cookie.indexOf("username=");
-    if (usernameStartIndex === -1) 
-    {
-      return false; // Le cookie ne contient pas l'attribut "username"
+  const cookie = document.cookie;
+
+  // Vérifie si la valeur de l'attribut "loggedIn" est "true"
+  if (isLoggedIn()) {
+    const cookieStartIndex = cookie.indexOf("cookieObject=");
+    if (cookieStartIndex === -1) {
+      return false; // Le cookie ne contient pas d'objet "cookieObject"
     }
+
+    const cookieEndIndex = cookie.indexOf(";", cookieStartIndex);
+    const cookieValue =
+      cookieEndIndex === -1
+        ? cookie.substring(cookieStartIndex + 13)
+        : decodeURIComponent(cookie.substring(cookieStartIndex + 13, cookieEndIndex)); // Opérateur ternere
+
+    const cookieObject = JSON.parse(cookieValue);
+
+    return cookieObject.usernameCookie;
   }
 
-  const usernameEndIndex = cookie.indexOf(";", usernameStartIndex);
-  const usernameValue = decodeURIComponent(cookie.substring(usernameStartIndex + 9, usernameEndIndex));
-
-  return usernameValue;
+  return false;
 }
 
 // Tentative Connexion
@@ -182,7 +205,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
     socket.onmessage = function (evt) // Lorsque le serveur répond
     { 
       reponseJSON = JSON.parse(evt.data); // On recupere en format json
-      if (type == 1) // Si c'est une inscription
+      if (reponseJSON.Inscription) // Si c'est une inscription
       {
         if (reponseJSON.Inscription == "ilExiste") // Si il existe déjà
         {
@@ -191,11 +214,11 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
         else if (reponseJSON.Inscription == "ilEstInscrit") // Si il est inscrit
         {
-          setCookie("true", 10); // [Retourner l'username en json]
+          setCookie("true", reponseJSON.Username, 10);
           document.location.href = "client.php";
         }
       }
-      else if (type == 2) // Si c'est une connexion
+      else if (reponseJSON.Connexion) // Si c'est une connexion
       {
         if (reponseJSON.Connexion == "ilExistePas") // Si il existe pas
         {
@@ -209,7 +232,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
         else if (reponseJSON.Connexion == "ilEstConnecter") // Si il est connecter
         {
-          setCookie("true", 10); // [Retourner l'username en json]
+          setCookie("true", reponseJSON.Username, 10);
           document.location.href = "client.php";
         }
       }
@@ -219,8 +242,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
 else if (path == "/client.php")
 {
     if (isLoggedIn()) // Si il est connecter
-    { 
-      const errorSocket = document.getElementById('errorSocket');
+    {
       const sendSocket = document.getElementById('sendMessage');
       const receiveSocket = document.getElementById('receiveMessages');
 
@@ -241,11 +263,6 @@ else if (path == "/client.php")
 
         li.textContent = "Message serveur : " + event.data; // event.data = message recu
         receiveSocket.appendChild(li); // Ajouter un élément à la liste
-      });
-
-      // Eventuelles Erreurs
-      socket.addEventListener('error', function (event) {
-        errorSocket.innerHTML = "Erreur WebSocket : " + event;
       });
     }
     else // Si il est pas connecter

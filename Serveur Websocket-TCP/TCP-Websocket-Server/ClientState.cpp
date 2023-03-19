@@ -1,10 +1,10 @@
 #include "ClientState.h"
 
 // [Constructeur]
-ClientState::ClientState(QString newUsername)
+ClientState::ClientState()
 {
 	authenticated = false;
-	username = newUsername;
+	username = nullptr; // nullptr
 }
 
 // [Méthode pour savoir si le client est connecter]

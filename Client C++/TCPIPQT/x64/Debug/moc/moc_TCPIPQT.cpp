@@ -23,7 +23,7 @@ QT_WARNING_PUSH
 QT_WARNING_DISABLE_DEPRECATED
 struct qt_meta_stringdata_TCPIPQT_t {
     QByteArrayData data[7];
-    char stringdata0[116];
+    char stringdata0[120];
 };
 #define QT_MOC_LITERAL(idx, ofs, len) \
     Q_STATIC_BYTE_ARRAY_DATA_HEADER_INITIALIZER_WITH_OFFSET(len, \
@@ -33,17 +33,18 @@ struct qt_meta_stringdata_TCPIPQT_t {
 static const qt_meta_stringdata_TCPIPQT_t qt_meta_stringdata_TCPIPQT = {
     {
 QT_MOC_LITERAL(0, 0, 7), // "TCPIPQT"
-QT_MOC_LITERAL(1, 8, 22), // "onConnectButtonClicked"
-QT_MOC_LITERAL(2, 31, 0), // ""
-QT_MOC_LITERAL(3, 32, 17), // "onSocketConnected"
-QT_MOC_LITERAL(4, 50, 20), // "onSocketDisconnected"
-QT_MOC_LITERAL(5, 71, 26), // "onSendMessageButtonClicked"
-QT_MOC_LITERAL(6, 98, 17) // "onSocketReadyRead"
+QT_MOC_LITERAL(1, 8, 21), // "onSignUpButtonClicked"
+QT_MOC_LITERAL(2, 30, 0), // ""
+QT_MOC_LITERAL(3, 31, 22), // "onConnectButtonClicked"
+QT_MOC_LITERAL(4, 54, 26), // "onSendMessageButtonClicked"
+QT_MOC_LITERAL(5, 81, 17), // "onSocketConnected"
+QT_MOC_LITERAL(6, 99, 20) // "onSocketDisconnected"
 
     },
-    "TCPIPQT\0onConnectButtonClicked\0\0"
-    "onSocketConnected\0onSocketDisconnected\0"
-    "onSendMessageButtonClicked\0onSocketReadyRead"
+    "TCPIPQT\0onSignUpButtonClicked\0\0"
+    "onConnectButtonClicked\0"
+    "onSendMessageButtonClicked\0onSocketConnected\0"
+    "onSocketDisconnected"
 };
 #undef QT_MOC_LITERAL
 
@@ -83,11 +84,11 @@ void TCPIPQT::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, voi
         auto *_t = static_cast<TCPIPQT *>(_o);
         Q_UNUSED(_t)
         switch (_id) {
-        case 0: _t->onConnectButtonClicked(); break;
-        case 1: _t->onSocketConnected(); break;
-        case 2: _t->onSocketDisconnected(); break;
-        case 3: _t->onSendMessageButtonClicked(); break;
-        case 4: _t->onSocketReadyRead(); break;
+        case 0: _t->onSignUpButtonClicked(); break;
+        case 1: _t->onConnectButtonClicked(); break;
+        case 2: _t->onSendMessageButtonClicked(); break;
+        case 3: _t->onSocketConnected(); break;
+        case 4: _t->onSocketDisconnected(); break;
         default: ;
         }
     }
