@@ -31,4 +31,5 @@ public slots:
 	// [Status]
 	void onSocketConnected(); // Connexion Status
 	void onSocketDisconnected(); // Déconnexion Status
+	void onClientReadyRead(); // Recevoir Message Serveur
 };

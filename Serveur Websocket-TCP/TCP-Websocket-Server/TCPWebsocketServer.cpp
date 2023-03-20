@@ -20,9 +20,9 @@ TCPWebsocketServer::TCPWebsocketServer(QWidget *parent)
     // [BDD]
     db = QSqlDatabase::addDatabase("QMYSQL");
 
-    db.setHostName("192.168.64.174");
+    db.setHostName("localhost");
     db.setUserName("root");
-    db.setPassword("root");
+    db.setPassword("");
     db.setDatabaseName("chatdatabase");
 
     if (db.open())
@@ -48,47 +48,59 @@ TCPWebsocketServer::~TCPWebsocketServer()
 // [Connexion client]
 void TCPWebsocketServer::onServerNewConnection()
 {
-    ui.label_status->setText("Un client viens de se connecter ! ");
+    if (sender() == TCPserver) // Si c'est un objet TCP
+    {
+        ui.label_status->setText("Un client application viens de se connecter ! ");
 
-    // [TCP]
-    QTcpSocket * client = TCPserver->nextPendingConnection();
-	cltsTCP[client] = new ClientState(); // on créer un nouveau client tcp
+        // [TCP]
+        QTcpSocket* client = TCPserver->nextPendingConnection();
+        cltsTCP[client] = new ClientState(); // on créer un nouveau client tcp
 
-    // [WebSocket]
-    QWebSocket * clientWeb = webSocketServer->nextPendingConnection();
-	cltsWeb[clientWeb] = new ClientState(); // on créer un nouveau client web
+        // [TCP]
+        QObject::connect(client, SIGNAL(readyRead()), this, SLOT(onClientReadyRead()));
+        QObject::connect(client, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+    }
+    else if (sender() == webSocketServer) // Si c'est un objet webSocket
+    {
+        ui.label_status->setText("Un client Web viens de se connecter ! ");
 
-    // [TCP]
-    QObject::connect(client, SIGNAL(readyRead()), this, SLOT(onClientReadyRead()));
-    QObject::connect(client, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+        // [WebSocket]
+        QWebSocket* clientWeb = webSocketServer->nextPendingConnection();
+        cltsWeb[clientWeb] = new ClientState(); // on créer un nouveau client web
 
-    // [WebSocket]
-    QObject::connect(clientWeb, &QWebSocket::textMessageReceived, this, &TCPWebsocketServer::onWebClientReadyRead);
-    QObject::connect(clientWeb, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+        // [WebSocket]
+        QObject::connect(clientWeb, &QWebSocket::textMessageReceived, this, &TCPWebsocketServer::onWebClientReadyRead);
+        QObject::connect(clientWeb, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+    }
 }
 
 // [Deconnexion client]
 void TCPWebsocketServer::onClientDisconnected()
 {
-    // [TCP]
-    QTcpSocket * obj = qobject_cast<QTcpSocket*>(sender());
+    if (sender() == TCPserver) // Si c'est un objet TCP
+    {
+        // [TCP]
+        QTcpSocket* obj = qobject_cast<QTcpSocket*>(sender());
 
-    // [WebSocket]
-    QWebSocket * objWeb = qobject_cast<QWebSocket*>(sender());
+        // [TCP]
+        QObject::disconnect(obj, SIGNAL(readyRead()), this, SLOT(onClientReadyRead()));
+        QObject::disconnect(obj, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
 
-    // [TCP]
-    QObject::disconnect(obj, SIGNAL(readyRead()), this, SLOT(onClientReadyRead()));
-    QObject::disconnect(obj, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+        // [TCP]
+        obj->deleteLater();
+    }
+    else if (sender() == webSocketServer) // Si c'est un objet webSocket
+    {
+        // [WebSocket]
+        QWebSocket* objWeb = qobject_cast<QWebSocket*>(sender());
 
-    // [WebSocket]
-    QObject::disconnect(objWeb, &QWebSocket::textMessageReceived, this, &TCPWebsocketServer::onWebClientReadyRead);
-    QObject::disconnect(objWeb, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
+        // [WebSocket]
+        QObject::disconnect(objWeb, &QWebSocket::textMessageReceived, this, &TCPWebsocketServer::onWebClientReadyRead);
+        QObject::disconnect(objWeb, SIGNAL(disconnected()), this, SLOT(onClientDisconnected()));
 
-    // [TCP]
-    obj->deleteLater();
-
-    // [WebSocket]
-    objWeb->deleteLater();
+        // [WebSocket]
+        objWeb->deleteLater();
+    }
 }
 
 // [Reception message client TCP]
@@ -160,9 +172,11 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
                         {
                             isExist = "ilEstInscrit";
 							cltsTCP[obj]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
+                            reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
                         }
                     }
-                    reponse.insert("Inscription", QJsonValue::fromVariant(isExist));
+                    reponse.insert("Type", QJsonValue::fromVariant("Inscription"));
+                    reponse.insert("Etat", QJsonValue::fromVariant(isExist));
                 }
                 else if (jsonMessage["type"].toString() == "connexion") // Si c'est une connexion
                 {
@@ -180,16 +194,23 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
                         {
                             isExist = "ilEstConnecter";
 							cltsTCP[obj]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
+                            reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
                         }
                         else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
                         {
                             isExist = "mdpPasBon";
                         }
                     }
-                    reponse.insert("Connexion", QJsonValue::fromVariant(isExist));
+                    reponse.insert("Type", QJsonValue::fromVariant("Connexion"));
+                    reponse.insert("Etat", QJsonValue::fromVariant(isExist));
                 }
+                
+                QJsonDocument messageDoc(reponse);  // On transforme en document json
+                QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+
+                obj->write(messageBytes);
             }
-            else if (jsonMessage["type"].toString() == "message" && cltsWeb[objWeb]->isAuthenticated()) // si le client est authentifier et si c'est un message
+            else if (jsonMessage["type"].toString() == "message" && cltsTCP[obj]->isAuthenticated()) // si le client est authentifier et si c'est un message
             {
 				type = 3;
 
@@ -204,18 +225,13 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
                 if (insertMessage.exec()) // Si requete réussi
                 {
                     // Et on va préparer la réponse en json
-                    reponse.insert("username", QJsonValue::fromVariant(usernameEnter));
-                    reponse.insert("content", QJsonValue::fromVariant(jsonMessage["content"].toString()));
-                    reponse.insert("date", QJsonValue::fromVariant(jsonMessage["date"].toString()));
-                    reponse.insert("heure", QJsonValue::fromVariant(jsonMessage["heure"].toString()));
+                    reponse.insert("Type", QJsonValue::fromVariant("message"));
+                    reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
+                    reponse.insert("Content", QJsonValue::fromVariant(jsonMessage["content"].toString()));
+                    reponse.insert("Date", QJsonValue::fromVariant(jsonMessage["date"].toString()));
+                    reponse.insert("Heure", QJsonValue::fromVariant(jsonMessage["heure"].toString()));
                 }
             }
-
-            QJsonDocument messageDoc(reponse);  // On transforme en document json
-            QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
-
-            obj->write(messageBytes); // On envoie le message
-            //obj->write("\n" + messageReceived.toUtf8());
         }
     }
     else if (objWeb !=  nullptr) // Si c'est un objet Websocket
@@ -305,6 +321,11 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 					}
 					reponse.insert("Connexion", QJsonValue::fromVariant(isExist));
 				}
+
+                QJsonDocument messageDoc(reponse);  // On transforme en document json
+                QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+
+                objWeb->sendTextMessage(QString::fromUtf8(messageBytes));
 			}
 			else
 			{
@@ -327,28 +348,24 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 					reponse.insert("Heure", QJsonValue::fromVariant(jsonMessage["heure"].toString()));
 				}
 			}
+        }
+    }
 
-            QJsonDocument messageDoc(reponse);  // On transforme en document json
-            QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+    if (type == 3) // Si client
+    {
+        QJsonDocument messageDoc(reponse);  // On transforme en document json
+        QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
 
-            if (type == 3) // Si client
-            {
-                // Parcourir l'ensemble des clients Webs présent dans le tableau associatif :
-                for (auto it = cltsTCP.keyBegin(); it != cltsTCP.keyEnd(); it++)
-                {
-                    (*it)->write(messageBytes);
-                }
+        // Parcourir l'ensemble des clients Webs présent dans le tableau associatif :
+        for (auto it = cltsTCP.keyBegin(); it != cltsTCP.keyEnd(); it++)
+        {
+            (*it)->write(messageBytes);
+        }
 
-				// Parcourir l'ensemble des clients TCPs présent dans le tableau associatif :
-				for (auto it = cltsWeb.keyBegin(); it != cltsWeb.keyEnd(); it++)
-				{
-					(*it)->sendTextMessage(QString::fromUtf8(messageBytes));
-				}
-            }
-            else // Si c'est une inscription ou connexion
-            {
-                objWeb->sendTextMessage(QString::fromUtf8(messageBytes)); // Ensuite on envoie une chaine
-            }
+        // Parcourir l'ensemble des clients TCPs présent dans le tableau associatif :
+        for (auto it = cltsWeb.keyBegin(); it != cltsWeb.keyEnd(); it++)
+        {
+            (*it)->sendTextMessage(QString::fromUtf8(messageBytes));
         }
     }
 }

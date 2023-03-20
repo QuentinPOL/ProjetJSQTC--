@@ -322,7 +322,7 @@ else if (path == "/client.php")
             li.style.color = "blue";
 
             // Afficher comme envoie
-            li.textContent = reponseJSON.Username + " : " + reponseJSON.Content + ", date : " + reponseJSON.Date + ", heure : " + reponseJSON.Heure; // event.data = message recu
+            li.textContent = "C moiii !!! " + reponseJSON.Username + " : " + reponseJSON.Content + ", date : " + reponseJSON.Date + ", heure : " + reponseJSON.Heure; // event.data = message recu
           }
           else
           {

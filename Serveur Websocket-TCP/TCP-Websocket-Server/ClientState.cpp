@@ -10,7 +10,14 @@ ClientState::ClientState()
 // [Méthode pour savoir si le client est connecter]
 bool ClientState::isAuthenticated()
 {
-	return authenticated;
+	if (authenticated == true)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 // [Méthode pour changer l'authentification et l'username]

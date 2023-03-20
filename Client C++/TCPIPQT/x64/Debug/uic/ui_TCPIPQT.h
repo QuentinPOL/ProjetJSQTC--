@@ -89,11 +89,11 @@ public:
         label_error->setGeometry(QRect(290, 230, 201, 21));
         label_message = new QLabel(centralWidget);
         label_message->setObjectName(QString::fromUtf8("label_message"));
-        label_message->setGeometry(QRect(30, 340, 701, 41));
+        label_message->setGeometry(QRect(30, 340, 701, 21));
         TCPIPQTClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(TCPIPQTClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 768, 22));
+        menuBar->setGeometry(QRect(0, 0, 768, 21));
         TCPIPQTClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(TCPIPQTClass);
         mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));
