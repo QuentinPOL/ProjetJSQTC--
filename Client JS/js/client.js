@@ -48,8 +48,20 @@ function requestUser(type, path, page, contentMessage)
   }
   else if (type == 3)
   {
+    // On récupere avec le cookie
+    let infoCookie = getFromCookie(2);
+
+    msg = {
+      type: "authentification",
+      path: path, //
+      username: infoCookie[0],
+      password: infoCookie[1],
+    };
+  }
+  else if (type == 4)
+  {
     // On récupere l'username avec le cookie
-    let usernameCookie = getUsernameFromCookie();
+    let usernameCookie = getFromCookie(1);
     // On va récuperer la date et l'heure
     let actualyDate = getDateHours();
 
@@ -63,12 +75,11 @@ function requestUser(type, path, page, contentMessage)
     };
   }
 
-  // Envoie du message sous forme JSON
   socket.send(JSON.stringify(msg));
 }
 
 // Fonction pour définir un cookie avec un nom, une valeur et une durée d'expiration
-function setCookie(cvalue, cusername, exminutes) 
+function setCookie(cvalue, cusername, cpassword, exminutes) 
 {
   const d = new Date();
   d.setTime(d.getTime() + (exminutes*60*1000)); // Minutes
@@ -77,7 +88,8 @@ function setCookie(cvalue, cusername, exminutes)
 
   let cookieObject = {
     loggedIn: cvalue,
-    usernameCookie: cusername
+    usernameCookie: cusername,
+    passwordCookie: cpassword
   };
 
   let jsonString = JSON.stringify(cookieObject);
@@ -131,8 +143,8 @@ function getDateHours()
   };
 }
 
-// Fonction qui récuper l'username dans le cookie
-function getUsernameFromCookie()
+// Fonction qui récupere dans le cookie
+function getFromCookie(type)
 {
   const cookie = document.cookie;
 
@@ -151,11 +163,30 @@ function getUsernameFromCookie()
 
     const cookieObject = JSON.parse(cookieValue);
 
-    return cookieObject.usernameCookie;
+    // On va créer un tableau pour recup les elements
+
+    if (type == 1)
+    {
+      return cookieObject.usernameCookie;
+    }
+    else if (type == 2)
+    {
+      let tabInfo = [];
+
+      tabInfo[0] = cookieObject.usernameCookie;
+      tabInfo[1] = cookieObject.passwordCookie;
+
+      return tabInfo;
+    }
   }
 
   return false;
 }
+
+// Connexion Fermée
+socket.addEventListener('close', () => {
+  statusSocket.innerHTML = "Status : Fermer (Le serveur à était fermer) !";
+});
 
 // Tentative Connexion
 if (socket.readyState == 0)
@@ -163,19 +194,14 @@ if (socket.readyState == 0)
   statusSocket.innerHTML = "Status : Le socket a été créé ! En attente de connexion ...";
 }
 
-// Connexion Ouverte
-socket.addEventListener('open', () => {
-  statusSocket.innerHTML = "Status : Connecter !";
-});
-
-// Connexion Fermée
-socket.addEventListener('close', () => {
-  statusSocket.innerHTML = "Status : Fermer (Le serveur à était fermer) !";
-});
-
 // Selon ou on se situe
 if (path == "/" || page ==  "index.php" || page == "inscription.php")
 {
+  // Connexion Ouverte
+  socket.addEventListener('open', () => {
+    statusSocket.innerHTML = "Status : Connecter !";
+  });
+
   if (isLoggedIn()) // Si il est connecter
     {
       document.location.href = "client.php";
@@ -214,7 +240,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
         else if (reponseJSON.Inscription == "ilEstInscrit") // Si il est inscrit
         {
-          setCookie("true", reponseJSON.Username, 10);
+          setCookie("true", reponseJSON.Username, reponseJSON.Password, 10);
           document.location.href = "client.php";
         }
       }
@@ -232,7 +258,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
         }
         else if (reponseJSON.Connexion == "ilEstConnecter") // Si il est connecter
         {
-          setCookie("true", reponseJSON.Username, 10);
+          setCookie("true", reponseJSON.Username, reponseJSON.Password, 10);
           document.location.href = "client.php";
         }
       }
@@ -243,27 +269,72 @@ else if (path == "/client.php")
 {
     if (isLoggedIn()) // Si il est connecter
     {
-      const sendSocket = document.getElementById('sendMessage');
-      const receiveSocket = document.getElementById('receiveMessages');
-
-      // Envoie des Messages
-      sendSocket.addEventListener('click', () => {
-        const message = document.getElementById('saisiMessage').value; // On recup le message
-
-        if (message.length != 0) // Si > 0 caractére
-        {
-          requestUser(3, path, null, message); // on le construit puis l'envoie
-        }
-      });
+      var sendSocket;
+      var receiveSocket;
+      
+      if (socket.readyState === WebSocket.OPEN) 
+      {
+        statusSocket.innerHTML = "Status : Connecter !";
+        requestUser(3, path, null, null); // re authentification
+      } 
+      else 
+      {
+        // Attendre que la connexion soit ouverte
+        socket.addEventListener('open', () => {
+          statusSocket.innerHTML = "Status : Connecter !";
+          requestUser(3, path, null, null); // re authentification
+        });
+      }
 
       // Réception des Messages
-      socket.addEventListener('message', function (event) {
-        const li = document.createElement('li');
-        li.style.listStyleType = "none";
+      socket.onmessage = function (evt)
+      {
+        reponseJSON = JSON.parse(evt.data); // On recupere en format json
 
-        li.textContent = "Message serveur : " + event.data; // event.data = message recu
-        receiveSocket.appendChild(li); // Ajouter un élément à la liste
-      });
+        if (reponseJSON.Authentification) // Si c'est une authentication
+        {
+          if (reponseJSON.Authentification == "ilExistePas" || reponseJSON.Authentification == "mdpPasBon") // Si il existe pas ou mdp incorrect
+          {
+            document.location.href = "index.php"; // bah on le remet sur la page de connexion
+          }
+          else if (reponseJSON.Authentification == "ilEstConnecter") // Si il est connecter
+          {
+            sendSocket = document.getElementById('sendMessage');
+            receiveSocket = document.getElementById('receiveMessages');
+
+            // Envoie des Messages
+            sendSocket.addEventListener('click', () => {
+              const message = document.getElementById('saisiMessage').value; // On recup le message
+              if (message.length != 0) // Si > 0 caractére
+              {
+                requestUser(4, path, null, message); // on le construit puis l'envoie
+              }
+            });
+          }
+        }
+        else if (reponseJSON.Type == "message") // Si c'est un message
+        {
+          var li = document.createElement('li');
+          li.style.listStyleType = "none";
+
+          if (reponseJSON.Username == getFromCookie(1)) // Si c'est lui même
+          {
+            li.style.color = "blue";
+
+            // Afficher comme envoie
+            li.textContent = reponseJSON.Username + " : " + reponseJSON.Content + ", date : " + reponseJSON.Date + ", heure : " + reponseJSON.Heure; // event.data = message recu
+          }
+          else
+          {
+            li.style.color = "red";
+
+            // Afficher comme reçu
+            li.textContent = reponseJSON.Username + " : " + reponseJSON.Content + ", date : " + reponseJSON.Date + ", heure : " + reponseJSON.Heure; // event.data = message recu
+          }
+
+          receiveSocket.appendChild(li); // Ajouter un élément à la liste
+        }
+      };
     }
     else // Si il est pas connecter
     {

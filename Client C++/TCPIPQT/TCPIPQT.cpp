@@ -77,6 +77,7 @@ void TCPIPQT::onSignUpButtonClicked() // Bouton d'inscription
 					ui.label_username->setVisible(false);
 					ui.label_password->setEnabled(false);
 					ui.label_password->setVisible(false);
+					ui.label_error->setText("");
 
 					// désactiver et cacher champSaisi username et password
 					ui.UsernameEdit->setEnabled(false);
@@ -229,6 +230,24 @@ void TCPIPQT::onSendMessageButtonClicked()
 				//ui.label_message->setText(str); 
 
 				QJsonObject jsonMessage = QJsonDocument::fromJson(str.toUtf8()).object(); // On décode en objet JSON
+
+				if (jsonMessage["Type"].toString() == "message") // Si c'est  un message
+				{
+					QString contentMessage = jsonMessage["Content"].toString();
+					QString dateMessage = jsonMessage["Date"].toString();
+					QString HeureMessage = jsonMessage["Heure"].toString();
+
+					if (jsonMessage["Username"].toString() == userUsername) // Si c'est lui même
+					{
+						ui.label_message->setText("C moi !!! " + userUsername + " : " + contentMessage + ", Date : " + dateMessage  + ", Heure : " + HeureMessage);
+					}
+					else
+					{
+						QString usernameMessage = jsonMessage["Username"].toString();
+
+						ui.label_message->setText(usernameMessage + " : " + contentMessage + ", Date : " + dateMessage + ", Heure : " + HeureMessage);
+					}
+				}
 			}
 		}
 	}
