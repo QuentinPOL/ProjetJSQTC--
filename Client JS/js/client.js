@@ -314,25 +314,43 @@ else if (path == "/client.php")
         }
         else if (reponseJSON.Type == "message") // Si c'est un message
         {
-          var li = document.createElement('li');
-          li.style.listStyleType = "none";
+          const li = document.createElement("li");
+          li.classList.add("clearfix");
+          
+          const messageData = document.createElement("div");
+          
+          const messageDataTime = document.createElement("span");
+          messageDataTime.classList.add("message-data-time");
+          
+          const textMessage = document.createElement("div");
 
           if (reponseJSON.Username == getFromCookie(1)) // Si c'est lui même
           {
-            li.style.color = "blue";
+            messageData.classList.add("message-data", "text-right");
+            messageDataTime.innerText = reponseJSON.Username + " - " +reponseJSON.Heure + " - " + reponseJSON.Date;
 
-            // Afficher comme envoie
-            li.textContent = "C moiii !!! " + reponseJSON.Username + " : " + reponseJSON.Content + ", date : " + reponseJSON.Date + ", heure : " + reponseJSON.Heure; // event.data = message recu
+            messageData.appendChild(messageDataTime);
+            
+            textMessage.classList.add("message", "other-message", "float-right");
+            textMessage.innerText = reponseJSON.Content;
           }
           else
           {
-            li.style.color = "red";
+            messageData.classList.add("message-data");
+            messageDataTime.innerText = reponseJSON.Username + " - " +reponseJSON.Heure + " - " + reponseJSON.Date;
 
-            // Afficher comme reçu
-            li.textContent = reponseJSON.Username + " : " + reponseJSON.Content + ", date : " + reponseJSON.Date + ", heure : " + reponseJSON.Heure; // event.data = message recu
+            messageData.appendChild(messageDataTime);
+
+            textMessage.classList.add("message", "my-message");
+            textMessage.innerText = reponseJSON.Content;
           }
 
+          li.appendChild(messageData);
+          li.appendChild(textMessage);
           receiveSocket.appendChild(li); // Ajouter un élément à la liste
+
+          const lastMessage = receiveSocket.lastChild; // obtenir le dernier élément ajouté à la liste
+          lastMessage.scrollIntoView(); // faire défiler la page vers le bas pour afficher le dernier message
         }
       };
     }

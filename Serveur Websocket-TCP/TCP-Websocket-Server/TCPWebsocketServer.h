@@ -8,6 +8,7 @@
 #include <QWebSocket>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <qmap.h>

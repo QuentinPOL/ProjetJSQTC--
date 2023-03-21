@@ -20,9 +20,9 @@ TCPWebsocketServer::TCPWebsocketServer(QWidget *parent)
     // [BDD]
     db = QSqlDatabase::addDatabase("QMYSQL");
 
-    db.setHostName("localhost");
+    db.setHostName("192.168.64.174");
     db.setUserName("root");
-    db.setPassword("");
+    db.setPassword("root");
     db.setDatabaseName("chatdatabase");
 
     if (db.open())
@@ -146,6 +146,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
         {
             if (!cltsTCP[obj]->isAuthenticated()) // Si il n'est pas authentifier
             {
+
                 if (jsonMessage["type"].toString() == "inscription") // Si c'est  une inscription
                 {
 					type = 1;
@@ -195,6 +196,28 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
                             isExist = "ilEstConnecter";
 							cltsTCP[obj]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
                             reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
+
+							// Requête SQL :
+							QSqlQuery selectUserPass("SELECT * FROM message ORDER BY idMessage DESC LIMIT 100");
+
+							// Création d'un tableau JSON pour stocker les résultats
+							QJsonArray messagesArray;
+
+							// Récupération des résultats et ajout à l'objet JSON
+							while (selectUserPass.next()) {
+
+								QJsonObject message;
+
+								message["id"] = selectUserPass.value("id").toInt();
+								message["content"] = selectUserPass.value("content").toString();
+								message["date"] = selectUserPass.value("date").toString();
+								messagesArray.append(message);
+							}
+
+							// Conversion du tableau JSON en objet JSON complet
+							QJsonObject result;
+							result["messages"] = messagesArray;
+
                         }
                         else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
                         {

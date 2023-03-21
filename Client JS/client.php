@@ -16,7 +16,7 @@
             <div class="col-lg-12">
                 <div class="chat">
                     <div class="chat-history">
-                    <p class="fixed-top ml-3 mt-2" id="status">Status : Aucun</p>
+                        <p class="fixed-top mt-2 text-center" id="status">Status : Aucun</p>
                         <ul class="m-b-0" id="receiveMessages">
                         </ul>
                     </div>
