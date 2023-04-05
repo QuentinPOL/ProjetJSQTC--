@@ -2,16 +2,17 @@
 
 #include <QtWidgets/QMainWindow>
 #include "ui_TCPWebsocketServer.h"
+#include <QMainWindow>
 #include <qtcpserver.h>
 #include <qtcpsocket.h>
-#include <QWebSocketServer>
-#include <QWebSocket>
+#include <QtWebSockets/QWebSocketServer>
+#include <QtWebSockets/QWebSocket>
+#include <QSqlDatabase>
+#include <QSqlQuery>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
-#include <QSqlDatabase>
-#include <QSqlQuery>
-#include <qmap.h>
+#include <QMap>
 #include "ClientState.h"
 
 class TCPWebsocketServer : public QMainWindow

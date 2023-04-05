@@ -3,7 +3,7 @@
 
 class ClientState
 {
-public :
+public:
 	ClientState(); // Constructeur
 	bool isAuthenticated(); // Méthode d'authentification
 	void setAuthenticated(bool newAuthenticated, QString newUsername); // Changer l'authentification

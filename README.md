@@ -1,3 +1,3 @@
 # ProjetJSQTC++
 
-INTROOOOOOO
+Mangeur de carte graphique (xD)

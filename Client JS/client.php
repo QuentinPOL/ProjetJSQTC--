@@ -11,6 +11,7 @@
     </head>
 
     <body>
+        <button style="width:150px; height:40px; margin-top:40px;" class="btn btn-primary btn-disconnecting fixed-top mx-auto" id="disconnecting">Déconnexion</button>
     <div>
         <div class="clearfix">
             <div class="col-lg-12">

@@ -1,20 +1,25 @@
-﻿#include "TCPIPQT.h"
+#include "TCPIPQT.h"
+#include <qdebug.h>
 
 TCPIPQT::TCPIPQT(QWidget *parent) // Constructeur
     : QMainWindow(parent)
 {
     ui.setupUi(this);
 
-	// [Rendre invisible bouton et saisi message]
+
+	// [Rendre invisible bouton et saisi message et zone]
 	ui.MessageEdit->setVisible(false);
 	ui.pushMessageButton->setVisible(false);
+	ui.plainTextEdit->setVisible(false);
+
+	ui.PasswordEdit->setEchoMode(QLineEdit::Password); // Cache le mdp
 
 	socket = new QTcpSocket(this); // Creation du socket
 	QObject::connect(socket, SIGNAL(connected()), this, SLOT(onSocketConnected()));
 	QObject::connect(socket, SIGNAL(disconnected()), this, SLOT(onSocketDisconnected()));
 	QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(onClientReadyRead()));
 
-	socket->connectToHost("127.0.0.1", 1234); // Connexion au serveur
+	socket->connectToHost("192.168.64.101", 4321); // Connexion au serveur
 }
 
 TCPIPQT::~TCPIPQT() // Destructeur
@@ -139,106 +144,131 @@ void TCPIPQT::onClientReadyRead()
 	// Lire les données reçues
 	QByteArray data = socket->read(socket->bytesAvailable());
 	QString str(data);
-
-	ui.label_message->setText(str);
-
-	QJsonObject jsonMessage = QJsonDocument::fromJson(str.toUtf8()).object(); // On décode en objet JSON
-
-	// Si c'est une inscription
-	if (jsonMessage["Type"].toString() == "Inscription")
+	std::string stdstr = str.toStdString();
+	for (int i = 0; i < str.length(); i++)
 	{
-		if (jsonMessage["Etat"].toString() == "ilExiste") // Si il existe déjà
+		buffer.push_back(stdstr[i]);
+	}
+
+	bool hasCompleteMessage = false;
+	int messageEndIdx = -1;
+	for (int i = 0; i < buffer.size(); i++)
+	{
+		if (buffer[i] == 0x01)
 		{
-			// Message d'erreur
-			ui.label_error->setText("<font color='red'>Ce nom d'utilisateur existe deja !</font>");
-		}
-		else if (jsonMessage["Etat"].toString() == "ilEstInscrit") // Si il est inscrit
-		{
-			userUsername = jsonMessage["Username"].toString(); // On stocke l'username
-
-			// désactiver et cacher bouton connexion et inscription
-			ui.pushConnectButton->setEnabled(false);
-			ui.pushConnectButton->setVisible(false);
-			ui.pushSignUptButton->setEnabled(false);
-			ui.pushSignUptButton->setVisible(false);
-
-			// désactiver et cacher label username et password
-			ui.label_username->setEnabled(false);
-			ui.label_username->setVisible(false);
-			ui.label_password->setEnabled(false);
-			ui.label_password->setVisible(false);
-			ui.label_error->setText("");
-
-			// désactiver et cacher champSaisi username et password
-			ui.UsernameEdit->setEnabled(false);
-			ui.UsernameEdit->setVisible(false);
-			ui.PasswordEdit->setEnabled(false);
-			ui.PasswordEdit->setVisible(false);
-
-			// Activer et afficher champSaisiMessage et boutonEnvoieMessage
-			ui.MessageEdit->setEnabled(true);
-			ui.MessageEdit->setVisible(true);
-			ui.pushMessageButton->setEnabled(true);
-			ui.pushMessageButton->setVisible(true);
+			hasCompleteMessage = true;
+			messageEndIdx = i;
+			break;
 		}
 	}
-	else if (jsonMessage["Type"].toString() == "Connexion") // Si c'est une connexion
+
+	if (hasCompleteMessage)
 	{
-	    if (jsonMessage["Etat"].toString() == "ilExistePas") // Si il existe pas
+		str = "";
+		for (int i = 0; i < messageEndIdx; i++)
 		{
-			// Message d'erreur
-			ui.label_error->setText("<font color='red'>Ce nom d'utilisateur n'existe pas !</font>");
+			str += buffer.front();
+			buffer.pop_front();
 		}
-		else if (jsonMessage["Etat"].toString() == "mdpPasBon") // Si mdp pas bon
+		buffer.pop_front();
+
+		QJsonObject jsonMessage = QJsonDocument::fromJson(str.toUtf8()).object(); // On décode en objet JSON
+
+		// Si c'est une inscription
+		if (jsonMessage["Type"].toString() == "Inscription")
 		{
-			// Message d'erreur
-			ui.label_error->setText("<font color='red'>Mot de passe incorrect !</font>");
+			if (jsonMessage["Etat"].toString() == "ilExiste") // Si il existe déjà
+			{
+				// Message d'erreur
+				ui.label_error->setText("<font color='red'>Ce nom d'utilisateur existe deja !</font>");
+			}
+			else if (jsonMessage["Etat"].toString() == "ilEstInscrit") // Si il est inscrit
+			{
+				userUsername = jsonMessage["Username"].toString(); // On stocke l'username
+
+				// désactiver et cacher bouton connexion et inscription
+				ui.pushConnectButton->setEnabled(false);
+				ui.pushConnectButton->setVisible(false);
+				ui.pushSignUptButton->setEnabled(false);
+				ui.pushSignUptButton->setVisible(false);
+
+				// désactiver et cacher label username et password
+				ui.label_username->setEnabled(false);
+				ui.label_username->setVisible(false);
+				ui.label_password->setEnabled(false);
+				ui.label_password->setVisible(false);
+				ui.label_error->setText("");
+
+				// désactiver et cacher champSaisi username et password
+				ui.UsernameEdit->setEnabled(false);
+				ui.UsernameEdit->setVisible(false);
+				ui.PasswordEdit->setEnabled(false);
+				ui.PasswordEdit->setVisible(false);
+
+				// Activer et afficher champSaisiMessage et boutonEnvoieMessage
+				ui.MessageEdit->setEnabled(true);
+				ui.MessageEdit->setVisible(true);
+				ui.pushMessageButton->setEnabled(true);
+				ui.pushMessageButton->setVisible(true);
+
+				// Activer la chatbox
+				ui.plainTextEdit->setEnabled(true);
+				ui.plainTextEdit->setVisible(true);
+
+				onMessageReceived(jsonMessage, 1);
+			}
 		}
-		else if (jsonMessage["Etat"].toString() == "ilEstConnecter") // Si il est connecter
+		else if (jsonMessage["Type"].toString() == "Connexion") // Si c'est une connexion
 		{
-			userUsername = jsonMessage["Username"].toString(); // On stocke l'username
+			if (jsonMessage["Etat"].toString() == "ilExistePas") // Si il existe pas
+			{
+				// Message d'erreur
+				ui.label_error->setText("<font color='red'>Ce nom d'utilisateur n'existe pas !</font>");
+			}
+			else if (jsonMessage["Etat"].toString() == "mdpPasBon") // Si mdp pas bon
+			{
+				// Message d'erreur
+				ui.label_error->setText("<font color='red'>Mot de passe incorrect !</font>");
+			}
+			else if (jsonMessage["Etat"].toString() == "ilEstConnecter") // Si il est connecter
+			{
+				userUsername = jsonMessage["Username"].toString(); // On stocke l'username
 
-			// désactiver et cacher bouton connexion et inscription
-			ui.pushConnectButton->setEnabled(false);
-			ui.pushConnectButton->setVisible(false);
-			ui.pushSignUptButton->setEnabled(false);
-			ui.pushSignUptButton->setVisible(false);
+				// désactiver et cacher bouton connexion et inscription
+				ui.pushConnectButton->setEnabled(false);
+				ui.pushConnectButton->setVisible(false);
+				ui.pushSignUptButton->setEnabled(false);
+				ui.pushSignUptButton->setVisible(false);
 
-			// désactiver et cacher label username et password et error
-			ui.label_username->setEnabled(false);
-			ui.label_username->setVisible(false);
-			ui.label_password->setEnabled(false);
-			ui.label_password->setVisible(false);
-			ui.label_error->setText("");
+				// désactiver et cacher label username et password et error
+				ui.label_username->setEnabled(false);
+				ui.label_username->setVisible(false);
+				ui.label_password->setEnabled(false);
+				ui.label_password->setVisible(false);
+				ui.label_error->setText("");
 
-			// désactiver et cacher champSaisi username et password
-			ui.UsernameEdit->setEnabled(false);
-			ui.UsernameEdit->setVisible(false);
-			ui.PasswordEdit->setEnabled(false);
-			ui.PasswordEdit->setVisible(false);
+				// désactiver et cacher champSaisi username et password
+				ui.UsernameEdit->setEnabled(false);
+				ui.UsernameEdit->setVisible(false);
+				ui.PasswordEdit->setEnabled(false);
+				ui.PasswordEdit->setVisible(false);
 
-			// Activer et afficher champSaisiMessage et boutonEnvoieMessage
-			ui.MessageEdit->setEnabled(true);
-			ui.MessageEdit->setVisible(true);
-			ui.pushMessageButton->setEnabled(true);
-			ui.pushMessageButton->setVisible(true);
+				// Activer et afficher champSaisiMessage et boutonEnvoieMessage
+				ui.MessageEdit->setEnabled(true);
+				ui.MessageEdit->setVisible(true);
+				ui.pushMessageButton->setEnabled(true);
+				ui.pushMessageButton->setVisible(true);
+
+				// Activer la chatbox
+				ui.plainTextEdit->setEnabled(true);
+				ui.plainTextEdit->setVisible(true);
+
+				onMessageReceived(jsonMessage, 1);
+			}
 		}
-	}
-	else if (jsonMessage["Type"].toString() == "message") // Si c'est  un message
-	{
-		QString contentMessage = jsonMessage["Content"].toString();
-		QString dateMessage = jsonMessage["Date"].toString();
-		QString HeureMessage = jsonMessage["Heure"].toString();
-
-		if (jsonMessage["Username"].toString() == userUsername) // Si c'est lui même
+		else if (jsonMessage["Type"].toString() == "message") // Si c'est un message
 		{
-			ui.label_message->setText("C moi !!! " + userUsername + " : " + contentMessage + ", Date : " + dateMessage  + ", Heure : " + HeureMessage);
-		}
-		else
-		{
-			QString usernameMessage = jsonMessage["Username"].toString();
-
-			ui.label_message->setText(usernameMessage + " : " + contentMessage + ", Date : " + dateMessage + ", Heure : " + HeureMessage);
+			onMessageReceived(jsonMessage, 0);
 		}
 	}
 }
@@ -252,4 +282,54 @@ void TCPIPQT::onSocketConnected()
 void TCPIPQT::onSocketDisconnected()
 {
 	ui.label_status->setText("Status connexion : Deconnecter");
+}
+
+void TCPIPQT::onMessageReceived(QJsonObject message, int arrayMessage)
+{
+	QString Message;
+
+	if (arrayMessage == 1) // Si c'est le tableau des derniers messages
+	{
+		QJsonArray messagesArray = message.value("Messages").toArray();
+
+		for (int i = messagesArray.size() - 1; i >= 0; --i) {
+			QJsonValue value = messagesArray.at(i);
+
+			QString contentMessage = value["content"].toString();
+			QString dateMessage = value["date"].toString();
+			QString HeureMessage = value["heure"].toString();
+
+			if (value["username"].toString() == userUsername) // Si c'est lui même
+			{
+				Message = "<font color='red'>(Moi même) : " + userUsername + " : " + contentMessage + ", Date : " + dateMessage + ", Heure : " + HeureMessage + "</font>";
+				ui.plainTextEdit->appendHtml(Message);
+			}
+			else
+			{
+				QString usernameMessage = value["username"].toString();
+
+				Message = "<font color='blue'>" + usernameMessage + " : " + contentMessage + ", Date : " + dateMessage + ", Heure : " + HeureMessage + "</font>";
+				ui.plainTextEdit->appendHtml(Message);
+			}
+		}
+	}
+	else
+	{
+		QString contentMessage = message["Content"].toString();
+		QString dateMessage = message["Date"].toString();
+		QString HeureMessage = message["Heure"].toString();
+
+		if (message["Username"].toString() == userUsername) // Si c'est lui même
+		{
+			Message = "<font color='red'>(Moi même) : " + userUsername + " : " + contentMessage + ", Date : " + dateMessage + ", Heure : " + HeureMessage + "</font>";
+			ui.plainTextEdit->appendHtml(Message);
+		}
+		else
+		{
+			QString usernameMessage = message["Username"].toString();
+
+			Message = "<font color='blue'>" + usernameMessage + " : " + contentMessage + ", Date : " + dateMessage + ", Heure : " + HeureMessage + "</font>";
+			ui.plainTextEdit->appendHtml(Message);
+		}
+	}
 }

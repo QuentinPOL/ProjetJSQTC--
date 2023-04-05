@@ -3,7 +3,7 @@ var path = window.location.pathname;
 // Récupère le nom du fichier HTML
 var page = path.split("/").pop();
 // Création du websocket
-const socket = new WebSocket('ws://localhost:81');
+const socket = new WebSocket('ws://192.168.64.101:1236');
 // Définition du status
 const statusSocket = document.getElementById('status');
 // Réponse JSON
@@ -94,8 +94,6 @@ function setCookie(cvalue, cusername, cpassword, exminutes)
 
   let jsonString = JSON.stringify(cookieObject);
   document.cookie = `cookieObject=${jsonString}` + ";" + expires;
-
-  console.log("document.cookie :", document.cookie);
 }
 
 // Fonction pour vérifier si l'utilisateur est connecter ou pas
@@ -128,7 +126,7 @@ function getDateHours()
   const jour = date.getDate();
   const mois = date.getMonth() + 1; // Les mois commencent à 0, donc ajouter 1
   const annee = date.getFullYear();
-  const dateString = jour + '/' + mois + '/' + annee;
+  const dateString = annee + '-' + mois + '-' + jour;
 
   // Récupérer l'heure
   const heures = date.getHours();
@@ -151,11 +149,14 @@ function getFromCookie(type)
   // Vérifie si la valeur de l'attribut "loggedIn" est "true"
   if (isLoggedIn()) {
     const cookieStartIndex = cookie.indexOf("cookieObject=");
+
     if (cookieStartIndex === -1) {
+
       return false; // Le cookie ne contient pas d'objet "cookieObject"
     }
 
     const cookieEndIndex = cookie.indexOf(";", cookieStartIndex);
+
     const cookieValue =
       cookieEndIndex === -1
         ? cookie.substring(cookieStartIndex + 13)
@@ -164,11 +165,11 @@ function getFromCookie(type)
     const cookieObject = JSON.parse(cookieValue);
 
     // On va créer un tableau pour recup les elements
-
     if (type == 1)
     {
       return cookieObject.usernameCookie;
     }
+
     else if (type == 2)
     {
       let tabInfo = [];
@@ -181,6 +182,47 @@ function getFromCookie(type)
   }
 
   return false;
+}
+
+function afficheMessage(message, listeUl) 
+{
+  const li = document.createElement("li");
+  li.classList.add("clearfix");  
+
+  const messageData = document.createElement("div");
+
+  const messageDataTime = document.createElement("span");
+  messageDataTime.classList.add("message-data-time");
+
+  const textMessage = document.createElement("div");
+
+  if (message.Username == getFromCookie(1)) // Si c'est lui même
+  {
+    messageData.classList.add("message-data", "text-right");
+
+    messageDataTime.innerText = message.Username + " - " + message.Heure + " - " + message.Date;
+    messageData.appendChild(messageDataTime);   
+
+    textMessage.classList.add("message", "other-message", "float-right");
+    textMessage.innerText = message.Content;
+  }
+  else
+  {
+    messageData.classList.add("message-data");
+
+    messageDataTime.innerText = message.Username + " - " + message.Heure + " - " + message.Date;
+    messageData.appendChild(messageDataTime);
+
+    textMessage.classList.add("message", "my-message");
+    textMessage.innerText = message.Content;
+  }
+
+  li.appendChild(messageData);
+  li.appendChild(textMessage);
+  listeUl.appendChild(li); // Ajouter un élément à la liste
+
+  const lastMessage = listeUl.lastChild; // obtenir le dernier élément ajouté à la liste
+  lastMessage.scrollIntoView(); // faire défiler la page vers le bas pour afficher le dernier message
 }
 
 // Connexion Fermée
@@ -231,6 +273,7 @@ if (path == "/" || page ==  "index.php" || page == "inscription.php")
     socket.onmessage = function (evt) // Lorsque le serveur répond
     { 
       reponseJSON = JSON.parse(evt.data); // On recupere en format json
+
       if (reponseJSON.Inscription) // Si c'est une inscription
       {
         if (reponseJSON.Inscription == "ilExiste") // Si il existe déjà
@@ -269,9 +312,10 @@ else if (path == "/client.php")
 {
     if (isLoggedIn()) // Si il est connecter
     {
-      var sendSocket;
-      var receiveSocket;
-      
+      var sendSocket = null;
+      var receiveSocket = null;
+      var btnDisconnecting = null;
+  
       if (socket.readyState === WebSocket.OPEN) 
       {
         statusSocket.innerHTML = "Status : Connecter !";
@@ -301,10 +345,25 @@ else if (path == "/client.php")
           {
             sendSocket = document.getElementById('sendMessage');
             receiveSocket = document.getElementById('receiveMessages');
+            btnDisconnecting = document.getElementById('disconnecting');
 
+            btnDisconnecting.addEventListener('click', () => {
+              setCookie("false", null, null, 100);
+              // Rafraîchir la page pour appliquer les changements
+              window.location.reload();
+            });
+
+            let last100Messages = reponseJSON.Messages; // Recuperation des 100 derniers messages
+
+            // Affichage
+            for (let i = 0; i < last100Messages.length; i++) 
+            {
+              afficheMessage(last100Messages[i], receiveSocket);
+            }
             // Envoie des Messages
             sendSocket.addEventListener('click', () => {
               const message = document.getElementById('saisiMessage').value; // On recup le message
+
               if (message.length != 0) // Si > 0 caractére
               {
                 requestUser(4, path, null, message); // on le construit puis l'envoie
@@ -314,43 +373,7 @@ else if (path == "/client.php")
         }
         else if (reponseJSON.Type == "message") // Si c'est un message
         {
-          const li = document.createElement("li");
-          li.classList.add("clearfix");
-          
-          const messageData = document.createElement("div");
-          
-          const messageDataTime = document.createElement("span");
-          messageDataTime.classList.add("message-data-time");
-          
-          const textMessage = document.createElement("div");
-
-          if (reponseJSON.Username == getFromCookie(1)) // Si c'est lui même
-          {
-            messageData.classList.add("message-data", "text-right");
-            messageDataTime.innerText = reponseJSON.Username + " - " +reponseJSON.Heure + " - " + reponseJSON.Date;
-
-            messageData.appendChild(messageDataTime);
-            
-            textMessage.classList.add("message", "other-message", "float-right");
-            textMessage.innerText = reponseJSON.Content;
-          }
-          else
-          {
-            messageData.classList.add("message-data");
-            messageDataTime.innerText = reponseJSON.Username + " - " +reponseJSON.Heure + " - " + reponseJSON.Date;
-
-            messageData.appendChild(messageDataTime);
-
-            textMessage.classList.add("message", "my-message");
-            textMessage.innerText = reponseJSON.Content;
-          }
-
-          li.appendChild(messageData);
-          li.appendChild(textMessage);
-          receiveSocket.appendChild(li); // Ajouter un élément à la liste
-
-          const lastMessage = receiveSocket.lastChild; // obtenir le dernier élément ajouté à la liste
-          lastMessage.scrollIntoView(); // faire défiler la page vers le bas pour afficher le dernier message
+          afficheMessage(reponseJSON, receiveSocket);
         }
       };
     }

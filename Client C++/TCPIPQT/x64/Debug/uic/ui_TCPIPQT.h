@@ -15,6 +15,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenuBar>
+#include <QtWidgets/QPlainTextEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QToolBar>
@@ -37,6 +38,7 @@ public:
     QLineEdit *MessageEdit;
     QLabel *label_error;
     QLabel *label_message;
+    QPlainTextEdit *plainTextEdit;
     QMenuBar *menuBar;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
@@ -46,7 +48,7 @@ public:
         if (TCPIPQTClass->objectName().isEmpty())
             TCPIPQTClass->setObjectName(QString::fromUtf8("TCPIPQTClass"));
         TCPIPQTClass->setEnabled(true);
-        TCPIPQTClass->resize(768, 547);
+        TCPIPQTClass->resize(821, 547);
         TCPIPQTClass->setAutoFillBackground(false);
         centralWidget = new QWidget(TCPIPQTClass);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
@@ -89,11 +91,15 @@ public:
         label_error->setGeometry(QRect(290, 230, 201, 21));
         label_message = new QLabel(centralWidget);
         label_message->setObjectName(QString::fromUtf8("label_message"));
-        label_message->setGeometry(QRect(30, 340, 701, 21));
+        label_message->setGeometry(QRect(20, 280, 711, 161));
+        plainTextEdit = new QPlainTextEdit(centralWidget);
+        plainTextEdit->setObjectName(QString::fromUtf8("plainTextEdit"));
+        plainTextEdit->setEnabled(false);
+        plainTextEdit->setGeometry(QRect(10, 40, 751, 401));
         TCPIPQTClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(TCPIPQTClass);
         menuBar->setObjectName(QString::fromUtf8("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 768, 21));
+        menuBar->setGeometry(QRect(0, 0, 821, 21));
         TCPIPQTClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(TCPIPQTClass);
         mainToolBar->setObjectName(QString::fromUtf8("mainToolBar"));

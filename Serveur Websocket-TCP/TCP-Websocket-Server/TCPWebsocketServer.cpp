@@ -3,19 +3,28 @@
 // [Constructeur]
 TCPWebsocketServer::TCPWebsocketServer(QWidget *parent)
     : QMainWindow(parent)
+	, TCPserver(new QTcpServer(this))
+	, webSocketServer(new QWebSocketServer("WebSocket Server", QWebSocketServer::NonSecureMode, this))
 {
     ui.setupUi(this);
-    
-    // [TCP]
-    TCPserver = new QTcpServer(this);
-    QObject::connect(TCPserver, SIGNAL(newConnection()), this, SLOT(onServerNewConnection()));
-    
-    webSocketServer = new QWebSocketServer("", QWebSocketServer::SslMode::NonSecureMode, this);
-    QObject::connect(webSocketServer, SIGNAL(newConnection()), this, SLOT(onServerNewConnection()));
 
-    // [TCP]
-    webSocketServer->listen(QHostAddress::AnyIPv4, 81);
-    TCPserver->listen(QHostAddress::AnyIPv4, 1234);
+	// [TCP]
+	if (TCPserver->listen(QHostAddress::AnyIPv4, 4321))
+	{
+		qDebug() << "Socket server listening on adress " << TCPserver->serverAddress();
+		qDebug() << "Socket server listening on port" << TCPserver->serverPort();
+
+		connect(TCPserver, SIGNAL(newConnection()), this, SLOT(onServerNewConnection()));
+	}
+
+	// [Websocket]
+	if (webSocketServer->listen(QHostAddress::AnyIPv4, 1236))
+	{
+		qDebug() << "WebSocket server listening on adress " << webSocketServer->serverAddress();
+		qDebug() << "WebSocket server listening on port" << webSocketServer->serverPort();
+
+		connect(webSocketServer, &QWebSocketServer::newConnection, this, &TCPWebsocketServer::onServerNewConnection);
+	}
 
     // [BDD]
     db = QSqlDatabase::addDatabase("QMYSQL");
@@ -39,10 +48,10 @@ TCPWebsocketServer::TCPWebsocketServer(QWidget *parent)
 // [Desctructeur]
 TCPWebsocketServer::~TCPWebsocketServer()
 {
-    TCPserver->close();
-    webSocketServer->close();
+	TCPserver->close();
+	webSocketServer->close();
 
-    delete TCPserver, webSocketServer;
+	delete TCPserver, webSocketServer;
 }
 
 // [Connexion client]
@@ -88,6 +97,8 @@ void TCPWebsocketServer::onClientDisconnected()
 
         // [TCP]
         obj->deleteLater();
+		delete cltsTCP[obj];
+		cltsTCP.remove(obj);
     }
     else if (sender() == webSocketServer) // Si c'est un objet webSocket
     {
@@ -100,6 +111,8 @@ void TCPWebsocketServer::onClientDisconnected()
 
         // [WebSocket]
         objWeb->deleteLater();
+		delete cltsWeb[objWeb];
+		cltsWeb.remove(objWeb);
     }
 }
 
@@ -111,6 +124,7 @@ void TCPWebsocketServer::onClientReadyRead()
     QByteArray data = obj->read(obj->bytesAvailable());
     QString str(data);
     
+	qDebug() << "Status de connexion : Message client TCP = " << str;
     ui.label_message->setText("Status de connexion : Message client TCP = " + str); // Réception Message du client TCP
     onSendMessageButtonClicked(obj, nullptr, str); // Envoie du message au client TCP
 }
@@ -120,6 +134,7 @@ void TCPWebsocketServer::onWebClientReadyRead(const QString& message)
 {
     QWebSocket* objWeb = qobject_cast<QWebSocket*>(sender());
 
+	qDebug() << "Status de connexion : Message client TCP = " << message;
     ui.label_message->setText("Status de connexion : Message client WebSocket = " + message); // Réception Message du client Web
     onSendMessageButtonClicked(nullptr, objWeb, message); // Envoie du message au Client Web
 }
@@ -140,132 +155,163 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
         isExist = "ilExistePas";
     }
 
-    if (obj != nullptr) // Si c'est un objet Socket
-    {
-        if (obj->state() == QTcpSocket::ConnectedState)
-        {
-            if (!cltsTCP[obj]->isAuthenticated()) // Si il n'est pas authentifier
-            {
+	if (obj != nullptr) // Si c'est un objet Socket
+	{
+		if (obj->state() == QTcpSocket::ConnectedState)
+		{
+			if (!cltsTCP[obj]->isAuthenticated()) // Si il n'est pas authentifier
+			{
+				// Conversion du tableau JSON en objet JSON complet
+				QJsonObject result;
 
-                if (jsonMessage["type"].toString() == "inscription") // Si c'est  une inscription
-                {
+				// Création d'un tableau JSON pour stocker les résultats
+				QJsonArray messagesArray;
+
+				if (jsonMessage["type"].toString() == "inscription") // Si c'est  une inscription
+				{
 					type = 1;
 
-                    // Requête SQL :
-                    QSqlQuery selectUsername("SELECT username FROM account");
+					// Requête SQL :
+					QSqlQuery selectUsername("SELECT username FROM account");
 
-                    while (selectUsername.next()) // Tant que y'a des tuples
-                    {
-                        if (selectUsername.value(0).toString() == usernameEnter) // Si on trouve que l'username existe déjà
-                        {
-                            isExist = "ilExiste"; // On met la QString à ilExiste
-                            break;
-                        }
-                    }
+					while (selectUsername.next()) // Tant que y'a des tuples
+					{
+						if (selectUsername.value(0).toString() == usernameEnter) // Si on trouve que l'username existe déjà
+						{
+							isExist = "ilExiste"; // On met la QString à ilExiste
+							break;
+						}
+					}
 
-                    if (isExist == "ilExistePas") // Si on trouve pas l'username
-                    {
-                        QSqlQuery insert("INSERT INTO account (username, password) VALUES (?, ?)");
-                        insert.addBindValue(usernameEnter);
-                        insert.addBindValue(passwordEnter);
+					if (isExist == "ilExistePas") // Si on trouve pas l'username
+					{
+						QSqlQuery insert("INSERT INTO account (username, password) VALUES (?, ?)");
+						insert.addBindValue(usernameEnter);
+						insert.addBindValue(passwordEnter);
 
-                        if (insert.exec())
-                        {
-                            isExist = "ilEstInscrit";
+						if (insert.exec())
+						{
+							isExist = "ilEstInscrit";
 							cltsTCP[obj]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
-                            reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
-                        }
-                    }
-                    reponse.insert("Type", QJsonValue::fromVariant("Inscription"));
-                    reponse.insert("Etat", QJsonValue::fromVariant(isExist));
-                }
-                else if (jsonMessage["type"].toString() == "connexion") // Si c'est une connexion
-                {
-					type = 2;
-
-                    // Requête SQL :
-                    QSqlQuery selectUserPass("SELECT username, password FROM account WHERE username = '" + usernameEnter + "'");
-
-                    if (selectUserPass.next()) // Si il y a > 0 tuples
-                    {
-                        QString userSelect = selectUserPass.value("username").toString();
-                        QString passwordSelect = selectUserPass.value("password").toString();
-
-                        if (usernameEnter == userSelect && passwordEnter == passwordSelect) // Si il à rentrer les bons identifiants
-                        {
-                            isExist = "ilEstConnecter";
-							cltsTCP[obj]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
-                            reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
+							reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
 
 							// Requête SQL :
 							QSqlQuery selectUserPass("SELECT * FROM message ORDER BY idMessage DESC LIMIT 100");
 
-							// Création d'un tableau JSON pour stocker les résultats
-							QJsonArray messagesArray;
-
 							// Récupération des résultats et ajout à l'objet JSON
-							while (selectUserPass.next()) {
-
+							while (selectUserPass.next())
+							{
 								QJsonObject message;
 
-								message["id"] = selectUserPass.value("id").toInt();
-								message["content"] = selectUserPass.value("content").toString();
+								message["id"] = selectUserPass.value("idMessage").toInt();
+								message["username"] = selectUserPass.value("username").toString();
+								message["content"] = selectUserPass.value("contentMessage").toString();
 								message["date"] = selectUserPass.value("date").toString();
+								message["heure"] = selectUserPass.value("heure").toString();
+
 								messagesArray.append(message);
 							}
 
-							// Conversion du tableau JSON en objet JSON complet
-							QJsonObject result;
 							result["messages"] = messagesArray;
+							reponse.insert("Messages", result["messages"]);
+						}
+					}
+					reponse.insert("Type", QJsonValue::fromVariant("Inscription"));
+					reponse.insert("Etat", QJsonValue::fromVariant(isExist));
+				}
+				else if (jsonMessage["type"].toString() == "connexion") // Si c'est une connexion
+				{
+					type = 2;
 
-                        }
-                        else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
-                        {
-                            isExist = "mdpPasBon";
-                        }
-                    }
-                    reponse.insert("Type", QJsonValue::fromVariant("Connexion"));
-                    reponse.insert("Etat", QJsonValue::fromVariant(isExist));
-                }
-                
-                QJsonDocument messageDoc(reponse);  // On transforme en document json
-                QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+					// Requête SQL :
+					QSqlQuery selectUserPass("SELECT username, password FROM account WHERE username = '" + usernameEnter + "'");
 
-                obj->write(messageBytes);
-            }
-            else if (jsonMessage["type"].toString() == "message" && cltsTCP[obj]->isAuthenticated()) // si le client est authentifier et si c'est un message
-            {
+					if (selectUserPass.next()) // Si il y a > 0 tuples
+					{
+						QString userSelect = selectUserPass.value("username").toString();
+						QString passwordSelect = selectUserPass.value("password").toString();
+
+						if (usernameEnter == userSelect && passwordEnter == passwordSelect) // Si il à rentrer les bons identifiants
+						{
+							isExist = "ilEstConnecter";
+							cltsTCP[obj]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
+							reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
+
+							// Requête SQL :
+							QSqlQuery selectUserPass("SELECT * FROM message ORDER BY idMessage DESC LIMIT 100");
+
+							// Récupération des résultats et ajout à l'objet JSON
+							while (selectUserPass.next())
+							{
+								QJsonObject message;
+								qDebug() << "requete 100 objet";
+								message["id"] = selectUserPass.value("idMessage").toInt();
+								message["username"] = selectUserPass.value("username").toString();
+								message["content"] = selectUserPass.value("contentMessage").toString();
+								message["date"] = selectUserPass.value("date").toString();
+								message["heure"] = selectUserPass.value("heure").toString();
+
+								messagesArray.append(message);
+							}
+
+							result["messages"] = messagesArray;
+							reponse.insert("Messages", result["messages"]);
+						}
+						else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
+						{
+							isExist = "mdpPasBon";
+						}
+
+						reponse.insert("Type", "Connexion");
+						reponse.insert("Etat", isExist);
+					}
+				}
+
+				QJsonDocument messageDoc(reponse);  // On transforme en document json
+				QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+
+				messageBytes.append(0x01);
+				obj->write(messageBytes);
+			}
+			else if (jsonMessage["type"].toString() == "message" && cltsTCP[obj]->isAuthenticated()) // si le client est authentifier et si c'est un message
+			{
 				type = 3;
+				qDebug() << "fdgjfngfjn";
+				// On va insérer en base
+				QSqlQuery insertMessage("INSERT INTO message (username, contentMessage, date, heure) VALUES (?, ?, ?, ?)");
 
-                // On va insérer en base
-                QSqlQuery insertMessage("INSERT INTO message (username, contentMessage, date, heure) VALUES (?, ?, ?, ?)");
+				insertMessage.addBindValue(usernameEnter);
+				insertMessage.addBindValue(jsonMessage["content"].toString());
+				insertMessage.addBindValue(jsonMessage["date"].toString());
+				insertMessage.addBindValue(jsonMessage["heure"].toString());
 
-                insertMessage.addBindValue(usernameEnter);
-                insertMessage.addBindValue(jsonMessage["content"].toString());
-                insertMessage.addBindValue(jsonMessage["date"].toString());
-                insertMessage.addBindValue(jsonMessage["heure"].toString());
-
-                if (insertMessage.exec()) // Si requete réussi
-                {
-                    // Et on va préparer la réponse en json
-                    reponse.insert("Type", QJsonValue::fromVariant("message"));
-                    reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
-                    reponse.insert("Content", QJsonValue::fromVariant(jsonMessage["content"].toString()));
-                    reponse.insert("Date", QJsonValue::fromVariant(jsonMessage["date"].toString()));
-                    reponse.insert("Heure", QJsonValue::fromVariant(jsonMessage["heure"].toString()));
-                }
-            }
-        }
-    }
-    else if (objWeb !=  nullptr) // Si c'est un objet Websocket
-    {
-        if (objWeb->state() == QAbstractSocket::ConnectedState)
-        {
+				if (insertMessage.exec()) // Si requete réussi
+				{
+					// Et on va préparer la réponse en json
+					reponse.insert("Type", QJsonValue::fromVariant("message"));
+					reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
+					reponse.insert("Content", QJsonValue::fromVariant(jsonMessage["content"].toString()));
+					reponse.insert("Date", QJsonValue::fromVariant(jsonMessage["date"].toString()));
+					reponse.insert("Heure", QJsonValue::fromVariant(jsonMessage["heure"].toString()));
+				}
+			}
+		}
+	}
+	else if (objWeb != nullptr) // Si c'est un objet Websocket
+	{
+		if (objWeb->state() == QAbstractSocket::ConnectedState)
+		{
 			if (!cltsWeb[objWeb]->isAuthenticated()) // Si il n'est pas authentifier
 			{
 				// On va faire quelque chose selon l'entete de cette réponse
 				if (jsonMessage["type"].toString() == "authentification" && jsonMessage["path"].toString() == "/client.php") // Si c'est une authentification
 				{
+					// Conversion du tableau JSON en objet JSON complet
+					QJsonObject result;
+
+					// Création d'un tableau JSON pour stocker les résultats
+					QJsonArray messagesArray;
+
 					// On va faire une requête pour vérifier qu'il existe bien
 					QSqlQuery selectUserPass("SELECT username, password FROM account WHERE username = '" + usernameEnter + "'");
 
@@ -278,6 +324,26 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 						{
 							isExist = "ilEstConnecter";
 							cltsWeb[objWeb]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
+
+							// Requête SQL :
+							QSqlQuery selectUserPass("SELECT * FROM message ORDER BY idMessage ASC LIMIT 100");
+
+							// Récupération des résultats et ajout à l'objet JSON
+							while (selectUserPass.next())
+							{
+								QJsonObject message;
+
+								message["id"] = selectUserPass.value("idMessage").toInt();
+								message["Username"] = selectUserPass.value("username").toString();
+								message["Content"] = selectUserPass.value("contentMessage").toString();
+								message["Date"] = selectUserPass.value("date").toString();
+								message["Heure"] = selectUserPass.value("heure").toString();
+
+								messagesArray.append(message);
+							}
+
+							result["messages"] = messagesArray;
+							reponse.insert("Messages", result["messages"]);
 						}
 						else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
 						{
@@ -288,7 +354,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 				}
 				else if (jsonMessage["type"].toString() == "inscription" && jsonMessage["page"].toString() == "inscription.php") // Si  c'est  une inscription que c'est bien la page
 				{
-                    type = 1;
+					type = 1;
 
 					// Requête SQL :
 					QSqlQuery selectUsername("SELECT username FROM account");
@@ -299,7 +365,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 						{
 							isExist = "ilExiste"; // On met la QString à ilExiste
 							break;
-						} 
+						}
 					}
 
 					if (isExist == "ilExistePas") // Si on trouve pas l'username
@@ -312,7 +378,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 						{
 							isExist = "ilEstInscrit";
 							cltsWeb[objWeb]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
-                            reponse.insert("Username", QJsonValue::fromVariant(usernameEnter)); // On va renvoyer l'username
+							reponse.insert("Username", QJsonValue::fromVariant(usernameEnter)); // On va renvoyer l'username
 							reponse.insert("Password", QJsonValue::fromVariant(passwordEnter)); // On va renvoyer le password
 						}
 					}
@@ -320,7 +386,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 				}
 				else  if (jsonMessage["type"].toString() == "connexion" && jsonMessage["path"].toString() == "/" || jsonMessage["page"].toString() == "index.php") // Si  c'est  une connexion et la bonne page
 				{
-                    type = 2;
+					type = 2;
 
 					// Requête SQL :
 					QSqlQuery selectUserPass("SELECT username, password FROM account WHERE username = '" + usernameEnter + "'");
@@ -334,7 +400,7 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 						{
 							isExist = "ilEstConnecter";
 							cltsWeb[objWeb]->setAuthenticated(true, usernameEnter); // on va authentifié notre client
-                            reponse.insert("Username", QJsonValue::fromVariant(usernameEnter)); // On va renvoyer l'username
+							reponse.insert("Username", QJsonValue::fromVariant(usernameEnter)); // On va renvoyer l'username
 							reponse.insert("Password", QJsonValue::fromVariant(passwordEnter)); // On va renvoyer le password
 						}
 						else if (passwordEnter != passwordSelect) // Si il c'est tromper de mdp
@@ -345,24 +411,24 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 					reponse.insert("Connexion", QJsonValue::fromVariant(isExist));
 				}
 
-                QJsonDocument messageDoc(reponse);  // On transforme en document json
-                QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+				QJsonDocument messageDoc(reponse);  // On transforme en document json
+				QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
 
-                objWeb->sendTextMessage(QString::fromUtf8(messageBytes));
+				objWeb->sendTextMessage(QString::fromUtf8(messageBytes));
 			}
-			else
+			else if (jsonMessage["type"].toString() == "message" && cltsWeb[objWeb]->isAuthenticated() && jsonMessage["path"].toString() == "/client.php") // Si c'est un message et que le client est authentifier et que c'est  la bonne page
 			{
-                if (jsonMessage["type"].toString() == "message" && cltsWeb[objWeb]->isAuthenticated() && jsonMessage["path"].toString() == "/client.php") // Si c'est un message et que le client est authentifier et que c'est  la bonne page
+				type = 3;
+
+				// On va insérer en base
+				QSqlQuery insertWebMessage("INSERT INTO message (username, contentMessage, date, heure) VALUES(?, ?, ?, ?)");
+				insertWebMessage.addBindValue(usernameEnter);
+				insertWebMessage.addBindValue(jsonMessage["content"].toString());
+				insertWebMessage.addBindValue(jsonMessage["date"].toString());
+				insertWebMessage.addBindValue(jsonMessage["heure"].toString());
+
+				if (insertWebMessage.exec())
 				{
-					type = 3;
-
-					// On va insérer en base
-					QSqlQuery insertMessage("INSERT INTO message (username, content, date, heure) VALUES(?, ?, ?, ?)");
-					insertMessage.addBindValue(usernameEnter);
-					insertMessage.addBindValue(jsonMessage["content"].toString());
-					insertMessage.addBindValue(jsonMessage["date"].toString());
-					insertMessage.addBindValue(jsonMessage["heure"].toString());
-
 					// Et on va préparer la réponse en json
 					reponse.insert("Type", QJsonValue::fromVariant("message"));
 					reponse.insert("Username", QJsonValue::fromVariant(usernameEnter));
@@ -371,13 +437,16 @@ void TCPWebsocketServer::onSendMessageButtonClicked(QTcpSocket * obj, QWebSocket
 					reponse.insert("Heure", QJsonValue::fromVariant(jsonMessage["heure"].toString()));
 				}
 			}
-        }
-    }
+		}
+	}
 
     if (type == 3) // Si client
     {
         QJsonDocument messageDoc(reponse);  // On transforme en document json
         QByteArray messageBytes = messageDoc.toJson(); // On le converti en donnée compréhensible
+
+		QByteArray tcpMessageBytes = messageDoc.toJson(); // Pour tcp
+		tcpMessageBytes.append(0x01); // On va rajouter une fin de message
 
         // Parcourir l'ensemble des clients Webs présent dans le tableau associatif :
         for (auto it = cltsTCP.keyBegin(); it != cltsTCP.keyEnd(); it++)
